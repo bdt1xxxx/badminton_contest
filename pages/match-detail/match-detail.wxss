@@ -1,0 +1,401 @@
+.container {
+  padding: 0 !important;
+  margin: 0 !important;
+  background-color: #f5f5f5;
+  min-height: 100vh;
+  border: none;
+  box-sizing: border-box;
+  display: block !important;
+  flex-direction: unset !important;
+  align-items: unset !important;
+  justify-content: unset !important;
+}
+
+/* Tab样式 */
+.tab-container {
+  display: flex;
+  background-color: #fff;
+  padding: 0 !important;
+  margin: 0 !important;
+  margin-bottom: 0 !important;
+  width: 100%;
+  box-sizing: border-box;
+  border-bottom: none;
+  position: static;
+}
+
+.tab {
+  flex: 1;
+  text-align: center;
+  padding: 15rpx 0;
+  position: relative;
+  border-bottom: 4rpx solid transparent;
+  margin: 0 !important;
+}
+
+.tab.active {
+  border-bottom-color: #ff3b30;
+}
+
+.tab.active .tab-text {
+  color: #ff3b30;
+}
+
+.tab-text {
+  font-size: 28rpx;
+  color: #666;
+  font-weight: 500;
+}
+
+/* 移除原来的match-header样式 */
+.match-header {
+  background-color: #fff;
+  padding: 30rpx;
+  margin-bottom: 20rpx;
+  text-align: center;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.match-name {
+  display: block;
+  font-size: 36rpx;
+  font-weight: bold;
+  color: #333;
+  margin-bottom: 15rpx;
+}
+
+.match-status {
+  display: inline-block;
+  padding: 8rpx 20rpx;
+  background-color: #f0f0f0;
+  border-radius: 20rpx;
+  font-size: 24rpx;
+  color: #666;
+}
+
+.section-title {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #333;
+  padding: 0 !important;
+  margin: 0 !important;
+  border-bottom: none;
+  line-height: 1;
+  background-color: #fff;
+}
+
+.match-info-section {
+  background-color: #fff;
+  margin: 0 !important;
+  margin-bottom: 0 !important;
+  padding: 0 !important;
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.info-grid {
+  padding: 20rpx 30rpx;
+}
+
+.info-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 20rpx 0;
+  border-bottom: 1rpx solid #f0f0f0;
+}
+
+.info-item:last-child {
+  border-bottom: none;
+}
+
+.info-label {
+  font-size: 28rpx;
+  color: #666;
+}
+
+.info-value {
+  font-size: 28rpx;
+  color: #333;
+  font-weight: 500;
+}
+
+.players-section {
+  background-color: #fff;
+  border-radius: 16rpx;
+  padding: 30rpx;
+  margin: 0 !important;
+  margin-bottom: 0 !important;
+  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.1);
+}
+
+.players-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(200rpx, 1fr));
+  gap: 20rpx;
+}
+
+.player-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 20rpx;
+  border: 1rpx solid #e0e0e0;
+  border-radius: 8rpx;
+  background-color: #fafafa;
+}
+
+.player-name {
+  font-size: 28rpx;
+  color: #333;
+  margin-bottom: 10rpx;
+  text-align: center;
+}
+
+.player-level {
+  font-size: 24rpx;
+  color: #666;
+}
+
+.matches-section {
+  background-color: #fff;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0 !important;
+  margin-bottom: 0 !important;
+  padding: 0 !important;
+}
+
+.matches-list {
+  padding: 20rpx 30rpx;
+}
+
+.match-item {
+  border: 1rpx solid #e0e0e0;
+  border-radius: 12rpx;
+  margin-bottom: 20rpx;
+  overflow: hidden;
+}
+
+.match-header {
+  background-color: #f8f8f8;
+  padding: 20rpx;
+  border-bottom: 1rpx solid #e0e0e0;
+}
+
+.round-info {
+  font-size: 28rpx;
+  color: #333;
+  font-weight: 500;
+}
+
+.bye-info {
+  font-size: 24rpx;
+  color: #666;
+}
+
+.match-content {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 30rpx 20rpx;
+  background-color: #fff;
+}
+
+.team1, .team2 {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+}
+
+.match-teams {
+  font-size: 28rpx;
+  color: #333;
+  font-weight: 500;
+}
+
+.match-levels {
+  font-size: 24rpx;
+  color: #666;
+}
+
+.vs-section {
+  padding: 0 40rpx;
+}
+
+.vs-text {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #666;
+}
+
+.score-section {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20rpx;
+  background-color: #f8f8f8;
+  border-top: 1rpx solid #e0e0e0;
+  gap: 20rpx;
+}
+
+.score-input {
+  width: 120rpx;
+  height: 60rpx;
+  border: 1rpx solid #e0e0e0;
+  border-radius: 8rpx;
+  text-align: center;
+  font-size: 28rpx;
+  background-color: #fff;
+}
+
+.score-input:disabled {
+  background-color: #f5f5f5;
+  color: #999;
+}
+
+.score-separator {
+  margin: 0;
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #666;
+}
+
+.complete-btn {
+  padding: 0 30rpx;
+  height: 60rpx;
+  border: 2rpx solid #3cc51f;
+  border-radius: 30rpx;
+  background-color: #3cc51f;
+  color: white;
+  font-size: 26rpx;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.complete-btn.modify {
+  background-color: #ff3b30;
+  border-color: #ff3b30;
+  color: white;
+}
+
+/* 分数统计tab样式 */
+.statistics-section {
+  background-color: #fff;
+  width: 100%;
+  box-sizing: border-box;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: none;
+  position: static;
+}
+
+.statistics-content {
+  padding: 0 !important;
+  margin: 0 !important;
+  border: none;
+}
+
+.stats-header {
+  display: flex;
+  background-color: #f8f8f8;
+  padding: 10rpx 20rpx;
+  border-radius: 0;
+  border-bottom: 1rpx solid #e0e0e0;
+  margin: 0 !important;
+  border-top: none;
+}
+
+.stats-header-item {
+  flex: 1;
+  text-align: center;
+  font-size: 26rpx;
+  color: #666;
+  font-weight: 500;
+}
+
+.stats-list {
+  border: 1rpx solid #e0e0e0;
+  border-top: none;
+  border-radius: 0;
+  margin: 0 !important;
+}
+
+.stats-item {
+  display: flex;
+  align-items: center;
+  padding: 25rpx 20rpx;
+  border-bottom: 1rpx solid #f0f0f0;
+  background-color: #fff;
+  margin: 0 !important;
+}
+
+.stats-item:last-child {
+  border-bottom: none;
+}
+
+.stats-item:nth-child(even) {
+  background-color: #fafafa;
+}
+
+.stats-rank {
+  flex: 1;
+  text-align: center;
+  font-size: 28rpx;
+  color: #333;
+  font-weight: bold;
+}
+
+.stats-name {
+  flex: 2;
+  text-align: center;
+  font-size: 28rpx;
+  color: #333;
+  font-weight: 500;
+}
+
+.stats-wins {
+  flex: 1;
+  text-align: center;
+  font-size: 28rpx;
+  color: #3cc51f;
+  font-weight: bold;
+}
+
+.stats-score {
+  flex: 1;
+  text-align: center;
+  font-size: 28rpx;
+  font-weight: bold;
+}
+
+.stats-score.positive {
+  color: #3cc51f;
+}
+
+.stats-score.negative {
+  color: #ff3b30;
+}
+
+.no-stats {
+  padding: 100rpx 30rpx;
+  text-align: center;
+  margin: 0 !important;
+}
+
+.no-stats-text {
+  display: block;
+  font-size: 32rpx;
+  color: #999;
+  margin-bottom: 20rpx;
+}
+
+.no-stats-desc {
+  display: block;
+  font-size: 28rpx;
+  color: #ccc;
+} 

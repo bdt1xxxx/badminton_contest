@@ -1,0 +1,96 @@
+<view class="container">
+  <!-- 移除原来的match-header，添加tab -->
+  <view class="tab-container" wx:if="{{match}}">
+    <view class="tab {{activeTab === 'details' ? 'active' : ''}}" bindtap="switchTab" data-tab="details">
+      <text class="tab-text">比赛详情</text>
+    </view>
+    <view class="tab {{activeTab === 'statistics' ? 'active' : ''}}" bindtap="switchTab" data-tab="statistics">
+      <text class="tab-text">分数统计</text>
+    </view>
+  </view>
+
+  <view class="match-info-section" wx:if="{{match && activeTab === 'details'}}">
+    <view class="section-title">比赛信息</view>
+    <view class="info-grid">
+      <view class="info-item">
+        <text class="info-label">比赛类型</text>
+        <text class="info-value">{{match.type}}</text>
+      </view>
+      <view class="info-item">
+        <text class="info-label">参赛人数</text>
+        <text class="info-value">{{match.players.length}}/{{match.maxPlayers}}人</text>
+      </view>
+      <view class="info-item">
+        <text class="info-label">比赛局数</text>
+        <text class="info-value">{{match.rounds}}局</text>
+      </view>
+      <view class="info-item">
+        <text class="info-label">等级差距</text>
+        <text class="info-value">{{match.levelGap}}</text>
+      </view>
+      <view class="info-item">
+        <text class="info-label">创建时间</text>
+        <text class="info-value">{{formatDate(match.date)}} {{match.time}}</text>
+      </view>
+    </view>
+  </view>
+
+  <view class="matches-section" wx:if="{{matches.length > 0 && activeTab === 'details'}}">
+    <view class="section-title">对阵安排</view>
+    <view class="matches-list">
+      <view class="match-item" wx:for="{{matches}}" wx:key="id">
+        <view class="match-header">
+          <text class="round-info">第{{item.round}}轮 第{{item.court}}场</text>
+        </view>
+        <view class="match-content">
+          <view class="team1">
+            <text class="player-name">{{item.team1.player1.name}}</text>
+            <text class="player-name">{{item.team1.player2.name}}</text>
+          </view>
+          <view class="vs-section">
+            <text class="vs-text">VS</text>
+          </view>
+          <view class="team2">
+            <text class="player-name">{{item.team2.player1.name}}</text>
+            <text class="player-name">{{item.team2.player2.name}}</text>
+          </view>
+        </view>
+        <view class="score-section">
+          <input class="score-input" placeholder="分数" value="{{item.team1.score}}" disabled="{{item.completed}}" data-match-id="{{item.id}}" data-team="team1" bindinput="onScoreInput" />
+          <text class="score-separator">:</text>
+          <input class="score-input" placeholder="分数" value="{{item.team2.score}}" disabled="{{item.completed}}" data-match-id="{{item.id}}" data-team="team2" bindinput="onScoreInput" />
+          <button class="complete-btn {{item.completed ? 'modify' : ''}}" bindtap="toggleComplete" data-match-id="{{item.id}}">
+            {{item.completed ? '修改' : '完成'}}
+          </button>
+        </view>
+      </view>
+    </view>
+  </view>
+
+  <!-- 分数统计tab内容 -->
+  <view class="statistics-section" wx:if="{{activeTab === 'statistics'}}">
+    <view class="section-title">分数统计</view>
+    <view class="statistics-content" wx:if="{{sortedPlayerStats && sortedPlayerStats.length > 0}}">
+      <view class="stats-header">
+        <text class="stats-header-item">排名</text>
+        <text class="stats-header-item">玩家</text>
+        <text class="stats-header-item">胜场</text>
+        <text class="stats-header-item">分数差</text>
+      </view>
+      <view class="stats-list">
+        <view class="stats-item" wx:for="{{sortedPlayerStats}}" wx:key="name">
+          <text class="stats-rank">{{index + 1}}</text>
+          <text class="stats-name">{{item.name}}</text>
+          <text class="stats-wins">{{item.wins}}</text>
+          <text class="stats-score {{item.scoreDiff >= 0 ? 'positive' : 'negative'}}">
+            {{item.scoreDiff >= 0 ? '+' : ''}}{{item.scoreDiff}}
+          </text>
+        </view>
+      </view>
+    </view>
+    <view class="no-stats" wx:else>
+      <text class="no-stats-text">暂无统计数据</text>
+      <text class="no-stats-desc">请完成一些比赛后查看统计</text>
+    </view>
+  </view>
+</view> 
