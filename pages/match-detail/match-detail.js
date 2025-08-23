@@ -35,18 +35,27 @@ Page({
           return;
         }
         
-        // 为每个对阵添加completed状态
-        const matchesWithStatus = (match.matches || []).map(m => ({
-          ...m,
-          completed: false
-        }));
+        // 为每个对阵添加completed状态，保持已保存的状态，并确保数据完整性
+        const matchesWithStatus = (match.matches || []).map(m => {
+          // 确保每个对阵都有必要的字段
+          const enhancedMatch = {
+            ...m,
+            completed: m.completed || false,
+            // 如果没有matchNumber字段，使用id作为场次标记
+            matchNumber: m.matchNumber || m.id
+          };
+          return enhancedMatch;
+        });
+        
+        // 根据完成状态排序对阵
+        const sortedMatches = this.sortMatchesByCompletion(matchesWithStatus);
         
         // 初始化玩家统计数据
         const playerStats = this.initializePlayerStats(match.players || []);
         
         this.setData({
           match: match,
-          matches: matchesWithStatus,
+          matches: sortedMatches,
           playerCounts: match.playerCounts || {},
           byeCounts: match.byeCounts || {},
           playerStats: playerStats
@@ -117,20 +126,35 @@ Page({
   // 切换完成/修改状态
   toggleComplete: function(e) {
     const matchId = e.currentTarget.dataset.matchId;
+    console.log('点击完成按钮，比赛ID:', matchId);
+    console.log('排序前的比赛数据:', this.data.matches);
     
     const matches = this.data.matches.map(m => {
       if (m.id === matchId) {
         m.completed = !m.completed;
+        console.log(`比赛 ${m.id} 状态变更为:`, m.completed);
       }
       return m;
     });
     
+    // 重新排序：已完成的比赛移动到未完成比赛的下面
+    const sortedMatches = this.sortMatchesByCompletion(matches);
+    console.log('排序后的比赛数据:', sortedMatches);
+    
     this.setData({
-      matches: matches
+      matches: sortedMatches
+    }, () => {
+      console.log('页面数据更新完成，当前matches:', this.data.matches);
+      
+      // 强制刷新页面数据
+      this.forceUpdateMatches();
     });
     
+    // 保存数据到本地存储
+    this.saveMatchData(sortedMatches);
+    
     // 显示提示
-    const match = matches.find(m => m.id === matchId);
+    const match = sortedMatches.find(m => m.id === matchId);
     if (match.completed) {
       wx.showToast({
         title: '比赛已完成',
@@ -142,6 +166,69 @@ Page({
         icon: 'success'
       });
     }
+  },
+
+  // 根据完成状态重新排序对阵
+  sortMatchesByCompletion: function(matches) {
+    console.log('开始排序，输入数据:', matches);
+    
+    // 将比赛分为未完成和已完成两组
+    const incompleteMatches = matches.filter(m => !m.completed);
+    const completedMatches = matches.filter(m => m.completed);
+    
+    console.log('未完成的比赛:', incompleteMatches);
+    console.log('已完成的比赛:', completedMatches);
+    
+    // 保持未完成比赛的相对顺序，已完成的比赛按原有顺序放在最后面
+    // 这样既保持了未完成比赛的顺序，又保持了已完成比赛的完成先后顺序
+    const result = [...incompleteMatches, ...completedMatches];
+    console.log('排序结果:', result);
+    
+    return result;
+  },
+
+  // 保存比赛数据到本地存储
+  saveMatchData: function(matches) {
+    try {
+      const allMatches = wx.getStorageSync('matches') || [];
+      const currentMatch = this.data.match;
+      
+      // 更新当前比赛的对阵数据
+      const updatedMatch = {
+        ...currentMatch,
+        matches: matches
+      };
+      
+      // 找到并更新存储中的比赛
+      const updatedMatches = allMatches.map(m => 
+        m.id === currentMatch.id ? updatedMatch : m
+      );
+      
+      wx.setStorageSync('matches', updatedMatches);
+      console.log('比赛数据已保存到本地存储');
+    } catch (e) {
+      console.error('保存比赛数据失败:', e);
+      wx.showToast({
+        title: '保存失败',
+        icon: 'none'
+      });
+    }
+  },
+
+  // 强制刷新页面数据
+  forceUpdateMatches: function() {
+    // 使用setTimeout确保DOM更新完成后再强制刷新
+    setTimeout(() => {
+      const currentMatches = this.data.matches;
+      console.log('强制刷新前的数据:', currentMatches);
+      
+      // 重新设置数据以触发页面更新
+      this.setData({
+        matches: [...currentMatches]
+      }, () => {
+        console.log('强制刷新完成，当前数据:', this.data.matches);
+      });
+    }, 100);
   },
 
   // 计算玩家统计数据

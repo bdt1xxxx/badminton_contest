@@ -413,8 +413,12 @@ Page({
     
     console.log('\n=== 生成的对阵详情 ===');
     matches.forEach((match, index) => {
-      const matchObj = {
-        id: index + 1,
+              // 只需要一个场次标记，从1到n
+        const matchNumber = index + 1;
+        
+        const matchObj = {
+          id: index + 1,
+          matchNumber: matchNumber,
         team1: {
           player1: { name: match.pair1[0], level: players[match.pair1[0]] },
           player2: { name: match.pair1[1], level: players[match.pair1[1]] },
@@ -430,9 +434,9 @@ Page({
       
       result.push(matchObj);
       
-      console.log(`第${index + 1}场: (${match.pair1[0]}+${match.pair1[1]}) vs (${match.pair2[0]}+${match.pair2[1]})`);
-      console.log(`  等级和: ${match.level1.toFixed(1)} vs ${match.level2.toFixed(1)}`);
-      console.log(`  等级差: ${match.levelDiff.toFixed(1)}`);
+              console.log(`第${matchNumber}场: (${match.pair1[0]}+${match.pair1[1]}) vs (${match.pair2[0]}+${match.pair2[1]})`);
+        console.log(`  等级和: ${match.level1.toFixed(1)} vs ${match.level2.toFixed(1)}`);
+        console.log(`  等级差: ${match.levelDiff.toFixed(1)}`);
     });
     
     console.log('\n=== 选手出场统计 ===');
