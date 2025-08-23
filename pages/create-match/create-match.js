@@ -53,7 +53,6 @@ Page({
     if (value && value.trim()) {
       if (index >= players.length) {
         players.push({
-          id: Date.now() + index,
           name: value.trim(),
           score: 1
         });
@@ -413,12 +412,11 @@ Page({
     
     console.log('\n=== 生成的对阵详情 ===');
     matches.forEach((match, index) => {
-              // 只需要一个场次标记，从1到n
-        const matchNumber = index + 1;
-        
-        const matchObj = {
-          id: index + 1,
-          matchNumber: matchNumber,
+      // 只需要一个场次标记，从1到n
+      const matchId = index + 1;
+      
+      const matchObj = {
+        id: matchId,
         team1: {
           player1: { name: match.pair1[0], level: players[match.pair1[0]] },
           player2: { name: match.pair1[1], level: players[match.pair1[1]] },
@@ -434,9 +432,9 @@ Page({
       
       result.push(matchObj);
       
-              console.log(`第${matchNumber}场: (${match.pair1[0]}+${match.pair1[1]}) vs (${match.pair2[0]}+${match.pair2[1]})`);
-        console.log(`  等级和: ${match.level1.toFixed(1)} vs ${match.level2.toFixed(1)}`);
-        console.log(`  等级差: ${match.levelDiff.toFixed(1)}`);
+      console.log(`第${matchId}场: (${match.pair1[0]}+${match.pair1[1]}) vs (${match.pair2[0]}+${match.pair2[1]})`);
+      console.log(`  等级和: ${match.level1.toFixed(1)} vs ${match.level2.toFixed(1)}`);
+      console.log(`  等级差: ${match.levelDiff.toFixed(1)}`);
     });
     
     console.log('\n=== 选手出场统计 ===');
@@ -494,13 +492,12 @@ Page({
       const selectedMatch = remaining.splice(bestNextIndex, 1)[0];
       result.push(selectedMatch);
       
-      console.log(`选择第${selectedMatch.matchNumber}场作为下一场，冲突分数: ${4 - bestScore}`);
+      console.log(`选择第${selectedMatch.id}场作为下一场，冲突分数: ${4 - bestScore}`);
     }
     
     // 重新编号比赛场次
     result.forEach((match, index) => {
       match.id = index + 1;
-      match.matchNumber = index + 1;
     });
     
     console.log('\n=== 优化后的比赛序列 ===');
@@ -511,7 +508,7 @@ Page({
         match.team2.player1.name,
         match.team2.player2.name
       ];
-      console.log(`第${match.matchNumber}场: ${players.join(', ')}`);
+      console.log(`第${match.id}场: ${players.join(', ')}`);
     });
     
     return result;

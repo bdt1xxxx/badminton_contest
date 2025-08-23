@@ -40,7 +40,7 @@
     <view class="matches-list">
       <view class="match-item" wx:for="{{matches}}" wx:key="id">
         <view class="match-header">
-          <text class="round-info">第{{item.matchNumber}}场</text>
+          <text class="round-info">第{{item.id}}场</text>
         </view>
         <view class="match-content">
           <view class="team1">

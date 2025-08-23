@@ -40,9 +40,7 @@ Page({
           // 确保每个对阵都有必要的字段
           const enhancedMatch = {
             ...m,
-            completed: m.completed || false,
-            // 如果没有matchNumber字段，使用id作为场次标记
-            matchNumber: m.matchNumber || m.id
+            completed: m.completed || false
           };
           return enhancedMatch;
         });

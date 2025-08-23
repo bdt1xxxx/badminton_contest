@@ -105,10 +105,10 @@ Page({
         "type": "双打",
         "maxPlayers": 8,
         "players": [
-          {"id": 1, "name": "张三", "score": 3.5},
-          {"id": 2, "name": "李四", "score": 4.0},
-          {"id": 3, "name": "王五", "score": 3.0},
-          {"id": 4, "name": "赵六", "score": 4.5}
+          {"name": "张三", "score": 3.5},
+          {"name": "李四", "score": 4.0},
+          {"name": "王五", "score": 3.0},
+          {"name": "赵六", "score": 4.5}
         ],
         "levelGap": 2,
         "rounds": 4,
