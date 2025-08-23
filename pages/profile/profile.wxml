@@ -1,54 +1,23 @@
 <view class="container">
   <view class="profile-header">
-    <view class="avatar-section">
+    <view class="profile-content">
       <image class="avatar" src="{{userInfo.avatar}}" mode="aspectFill"></image>
-      <button class="edit-btn" bindtap="editProfile">编辑</button>
-    </view>
-    <text class="nickname">{{userInfo.nickname}}</text>
-  </view>
-
-  <view class="statistics-section">
-    <view class="stats-grid">
-      <view class="stat-item">
-        <text class="stat-number">{{statistics.totalMatches}}</text>
-        <text class="stat-label">总比赛</text>
+      <view class="user-info">
+        <text class="nickname">{{userInfo.nickname}}</text>
+        
+        <!-- 当用户未授权时显示获取用户信息按钮 -->
+        <button wx:if="{{!hasUserInfo}}" 
+                class="get-userinfo-btn" 
+                bindtap="getUserProfile">
+          获取微信头像和昵称
+        </button>
       </view>
-      <view class="stat-item">
-        <text class="stat-number">{{statistics.participatedMatches}}</text>
-        <text class="stat-label">已参加</text>
-      </view>
-      <view class="stat-item">
-        <text class="stat-number">{{statistics.wonMatches}}</text>
-        <text class="stat-label">获胜</text>
-      </view>
-      <view class="stat-item">
-        <text class="stat-number">{{statistics.totalScore}}</text>
-        <text class="stat-label">总得分</text>
-      </view>
-    </view>
-  </view>
-
-  <view class="menu-section">
-    <view class="menu-item" 
-          wx:for="{{menuItems}}" 
-          wx:key="id" 
-          bindtap="onMenuItemClick" 
-          data-id="{{item.id}}">
-      <view class="menu-icon">{{item.icon}}</view>
-      <view class="menu-content">
-        <text class="menu-title">{{item.title}}</text>
-        <text class="menu-desc">{{item.desc}}</text>
-      </view>
-      <view class="menu-arrow">></view>
     </view>
   </view>
 
   <view class="action-section">
     <button class="action-btn export-btn" bindtap="exportData">导出数据</button>
+    <button class="action-btn import-btn" bindtap="importData">导入数据</button>
     <button class="action-btn clear-btn" bindtap="clearData">清除数据</button>
-  </view>
-
-  <view class="footer">
-    <text class="footer-text">羽毛球比赛小程序 v1.0.0</text>
   </view>
 </view> 

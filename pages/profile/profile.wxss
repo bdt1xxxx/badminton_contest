@@ -1,22 +1,20 @@
 .container {
-  padding: 20rpx;
+  padding: 0;
   background-color: #f5f5f5;
   min-height: 100vh;
 }
 
 .profile-header {
   background-color: #fff;
-  border-radius: 16rpx;
   padding: 40rpx 30rpx;
   margin-bottom: 30rpx;
-  text-align: center;
   box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.1);
 }
 
-.avatar-section {
-  position: relative;
-  display: inline-block;
-  margin-bottom: 20rpx;
+.profile-content {
+  display: flex;
+  align-items: center;
+  gap: 30rpx;
 }
 
 .avatar {
@@ -24,21 +22,14 @@
   height: 120rpx;
   border-radius: 60rpx;
   border: 4rpx solid #3cc51f;
+  flex-shrink: 0;
 }
 
-.edit-btn {
-  position: absolute;
-  bottom: 0;
-  right: 0;
-  width: 40rpx;
-  height: 40rpx;
-  background-color: #3cc51f;
-  color: #fff;
-  border: none;
-  border-radius: 20rpx;
-  font-size: 20rpx;
-  line-height: 40rpx;
-  padding: 0;
+.user-info {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 20rpx;
 }
 
 .nickname {
@@ -47,86 +38,18 @@
   color: #333;
 }
 
-.statistics-section {
-  background-color: #fff;
-  border-radius: 16rpx;
-  padding: 30rpx;
-  margin-bottom: 30rpx;
-  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.1);
-}
-
-.stats-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr 1fr 1fr;
-  gap: 20rpx;
-}
-
-.stat-item {
-  text-align: center;
-}
-
-.stat-number {
-  display: block;
-  font-size: 36rpx;
-  font-weight: bold;
-  color: #3cc51f;
-  margin-bottom: 10rpx;
-}
-
-.stat-label {
-  font-size: 24rpx;
-  color: #666;
-}
-
-.menu-section {
-  background-color: #fff;
-  border-radius: 16rpx;
-  margin-bottom: 30rpx;
-  box-shadow: 0 2rpx 10rpx rgba(0, 0, 0, 0.1);
-  overflow: hidden;
-}
-
-.menu-item {
-  display: flex;
-  align-items: center;
-  padding: 30rpx;
-  border-bottom: 1rpx solid #f0f0f0;
-}
-
-.menu-item:last-child {
-  border-bottom: none;
-}
-
-.menu-icon {
-  font-size: 40rpx;
-  margin-right: 20rpx;
-  width: 60rpx;
-  text-align: center;
-}
-
-.menu-content {
-  flex: 1;
-}
-
-.menu-title {
-  display: block;
-  font-size: 30rpx;
-  color: #333;
-  margin-bottom: 8rpx;
-  font-weight: 500;
-}
-
-.menu-desc {
-  font-size: 24rpx;
-  color: #999;
-}
-
-.menu-arrow {
+.get-userinfo-btn {
+  background-color: #3cc51f;
+  color: #fff;
+  border: none;
+  border-radius: 12rpx;
   font-size: 28rpx;
-  color: #ccc;
+  padding: 20rpx 40rpx;
+  align-self: flex-start;
 }
 
 .action-section {
+  padding: 0 20rpx;
   margin-bottom: 30rpx;
 }
 
@@ -144,17 +67,12 @@
   color: #fff;
 }
 
-.clear-btn {
-  background-color: #ff4757;
+.import-btn {
+  background-color: #28a745;
   color: #fff;
 }
 
-.footer {
-  text-align: center;
-  padding: 40rpx 0;
-}
-
-.footer-text {
-  font-size: 24rpx;
-  color: #999;
+.clear-btn {
+  background-color: #ff4757;
+  color: #fff;
 } 
