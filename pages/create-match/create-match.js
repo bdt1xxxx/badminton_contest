@@ -459,8 +459,96 @@ Page({
     
     console.log('\n=== 开始优化比赛序列 ===');
     
+    // 尝试多次优化，直到找到无冲突的序列
+    const maxAttempts = 10;
+    let bestResult = null;
+    let bestConflictCount = Infinity;
+    
+    for (let attempt = 1; attempt <= maxAttempts; attempt++) {
+      console.log(`\n--- 第${attempt}次尝试优化 ---`);
+      
+      const result = this.attemptOptimization(matches);
+      const totalConflicts = this.calculateTotalConflicts(result);
+      
+      console.log(`第${attempt}次尝试结果: 总冲突数 = ${totalConflicts}`);
+      
+      if (totalConflicts === 0) {
+        console.log('✅ 找到完全无冲突的比赛序列！');
+        // 重新编号，确保ID连续
+        this.renumberMatches(result);
+        return result;
+      }
+      
+      if (totalConflicts < bestConflictCount) {
+        bestConflictCount = totalConflicts;
+        bestResult = result;
+        console.log(`更新最佳结果: 总冲突数 = ${bestConflictCount}`);
+      }
+      
+      // 如果冲突数很少，也可以接受
+      if (totalConflicts <= 1) {
+        console.log(`✅ 找到低冲突的比赛序列，冲突数 = ${totalConflicts}`);
+        // 重新编号，确保ID连续
+        this.renumberMatches(result);
+        return result;
+      }
+    }
+    
+    console.log(`⚠️ 经过${maxAttempts}次尝试，未找到完全无冲突的序列，返回最佳结果`);
+    
+    // 重新编号，确保ID连续
+    this.renumberMatches(bestResult);
+    
+    // 显示最终结果
+    console.log('\n=== 最终优化结果 ===');
+    bestResult.forEach((match, index) => {
+      const players = [
+        match.team1.player1.name,
+        match.team1.player2.name,
+        match.team2.player1.name,
+        match.team2.player2.name
+      ];
+      console.log(`第${match.id}场: ${players.join(', ')}`);
+      
+      // 检查与上一场比赛的冲突
+      if (index > 0) {
+        const prevMatch = bestResult[index - 1];
+        const conflictScore = this.calculateConflictScore(prevMatch, match);
+        if (conflictScore > 0) {
+          console.warn(`⚠️ 第${match.id}场与第${prevMatch.id}场有${conflictScore}个重复选手: ${this.getConflictingPlayers(prevMatch, match).join(', ')}`);
+        } else {
+          console.log(`✅ 第${match.id}场与第${prevMatch.id}场无重复选手`);
+        }
+      }
+    });
+    
+    console.log(`\n总冲突数: ${bestConflictCount}`);
+    if (bestConflictCount === 0) {
+      console.log('🎉 完美！所有相邻比赛都无重复选手');
+    } else if (bestConflictCount <= 1) {
+      console.log('👍 很好！只有少量冲突');
+    } else {
+      console.log('⚠️ 仍有较多冲突，建议检查选手数量是否足够');
+    }
+    
+    return bestResult;
+  },
+
+  // 重新编号比赛，确保ID连续
+  renumberMatches: function(matches) {
+    console.log('\n=== 重新编号比赛 ===');
+    matches.forEach((match, index) => {
+      const oldId = match.id;
+      match.id = index + 1;
+      console.log(`第${oldId}场 → 第${match.id}场`);
+    });
+    console.log('✅ 比赛编号已重新排序');
+  },
+
+  // 单次尝试优化
+  attemptOptimization: function(matches) {
     const result = [matches[0]]; // 第一场比赛保持不变
-    const remaining = [...matches.slice(1)];
+    let remaining = [...matches.slice(1)];
     
     while (remaining.length > 0) {
       let bestNextIndex = -1;
@@ -483,35 +571,39 @@ Page({
         }
       }
       
-      // 如果找不到无冲突的比赛，选择冲突最少的
-      if (bestNextIndex === -1) {
+      // 如果找不到无冲突的比赛，重新打乱剩余比赛顺序
+      if (bestScore === 0) {
+        this.shuffleArray(remaining);
         bestNextIndex = 0;
+        bestScore = 4 - this.calculateConflictScore(result[result.length - 1], remaining[0]);
       }
       
       // 将选中的比赛添加到结果中
       const selectedMatch = remaining.splice(bestNextIndex, 1)[0];
       result.push(selectedMatch);
       
-      console.log(`选择第${selectedMatch.id}场作为下一场，冲突分数: ${4 - bestScore}`);
+      // 如果冲突分数为0，说明找到了无冲突的比赛，重置remaining数组
+      if (bestScore === 4) {
+        remaining = [...matches.slice(1)].filter(m => 
+          !result.some(r => r.id === m.id)
+        );
+        this.shuffleArray(remaining);
+      }
     }
     
-    // 重新编号比赛场次
-    result.forEach((match, index) => {
-      match.id = index + 1;
-    });
-    
-    console.log('\n=== 优化后的比赛序列 ===');
-    result.forEach((match, index) => {
-      const players = [
-        match.team1.player1.name,
-        match.team1.player2.name,
-        match.team2.player1.name,
-        match.team2.player2.name
-      ];
-      console.log(`第${match.id}场: ${players.join(', ')}`);
-    });
-    
     return result;
+  },
+
+  // 计算整个序列的总冲突数
+  calculateTotalConflicts: function(matches) {
+    let totalConflicts = 0;
+    
+    for (let i = 1; i < matches.length; i++) {
+      const conflictScore = this.calculateConflictScore(matches[i-1], matches[i]);
+      totalConflicts += conflictScore;
+    }
+    
+    return totalConflicts;
   },
 
   // 计算两场比赛之间的冲突分数（重复选手数量）
@@ -538,6 +630,31 @@ Page({
     }
     
     return conflicts;
+  },
+
+  // 获取冲突的选手列表
+  getConflictingPlayers: function(match1, match2) {
+    const players1 = new Set([
+      match1.team1.player1.name,
+      match1.team1.player2.name,
+      match1.team2.player1.name,
+      match1.team2.player2.name
+    ]);
+    
+    const players2 = new Set([
+      match2.team1.player1.name,
+      match2.team1.player2.name,
+      match2.team2.player1.name,
+      match2.team2.player2.name
+    ]);
+    
+    const conflictingPlayers = [];
+    for (const player of players1) {
+      if (players2.has(player)) {
+        conflictingPlayers.push(player);
+      }
+    }
+    return conflictingPlayers;
   },
 
   // 生成组合
