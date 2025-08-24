@@ -240,7 +240,7 @@ Page({
     }
   },
 
-  // 生成对阵算法 - 集成Python算法
+  // 生成对阵算法
   generateMatches: function() {
     const players = this.data.players;
     const numPlayers = players.length;
@@ -259,39 +259,22 @@ Page({
       playersObj[player.name] = parseFloat(player.score);
     });
     
-    try {
-      const result = this.generateMatchesAdvanced(playersObj, numMatches, levelGap);
-      console.log('生成的对阵结果:', result);
-      return result;
-    } catch (error) {
-      console.error('生成对阵失败:', error);
-      throw new Error('生成对阵失败: ' + error.message);
-    }
-  },
-
-  // 羽毛球对阵生成算法
-  generateMatchesAdvanced: function(players, n, levelGap) {
     // 输入验证
-    if (!players || Object.keys(players).length === 0) {
+    if (!playersObj || Object.keys(playersObj).length === 0) {
       throw new Error('选手信息不能为空');
     }
-    if (n <= 0) {
+    if (numMatches <= 0) {
       throw new Error('对阵场数必须大于0');
     }
     if (levelGap < 0) {
       throw new Error('等级差不能为负数');
     }
 
-    const playerList = Object.keys(players);
-    const numPlayers = playerList.length;
+    const playerList = Object.keys(playersObj);
     
-    if (numPlayers < 4) {
-      throw new Error('至少需要4名选手才能生成对阵');
-    }
-
     console.log('=== 开始生成对阵 ===');
     console.log(`选手数量: ${numPlayers}`);
-    console.log(`对阵场数: ${n}`);
+    console.log(`对阵场数: ${numMatches}`);
     console.log(`等级差限制: ${levelGap}`);
 
     // Step 1: 生成所有可能的2人组合
@@ -309,8 +292,8 @@ Page({
         const allPlayers = new Set([...pair1, ...pair2]);
         if (allPlayers.size === 4) {
           // 计算两组的等级之和
-          const level1 = players[pair1[0]] + players[pair1[1]];
-          const level2 = players[pair2[0]] + players[pair2[1]];
+          const level1 = playersObj[pair1[0]] + playersObj[pair1[1]];
+          const level2 = playersObj[pair2[0]] + playersObj[pair2[1]];
           const levelDiff = Math.abs(level1 - level2);
           
           // 检查等级差是否满足要求
@@ -334,10 +317,81 @@ Page({
     }
 
     // Step 3: 从有效组合中选择n组，确保每个人出场次数相等
-    const result = this.selectBalancedMatchesBackTrace(validMatches, n, playerList, players);
+    console.log('\n=== 开始执行策略链生成对阵 ===');
     
-    console.log('=== 对阵生成完成 ===');
-    return result;
+    // 定义策略链
+    const strategies = [
+      {
+        name: '回溯法',
+        method: 'selectBalancedMatchesBackTrace',
+        toast: '回溯法未找到最优解，使用备选方案'
+      },
+      {
+        name: '暴力法',
+        method: 'selectBalancedMatches',
+        toast: '备选方案失败，使用兜底策略'
+      },
+      {
+        name: '无规则',
+        method: 'selectBalancedMatchesFallback',
+        toast: '所有策略都失败了'
+      }
+    ];
+    
+    // 执行策略链
+    for (let i = 0; i < strategies.length; i++) {
+      const strategy = strategies[i];
+      console.log(`\n=== 尝试策略${i + 1}: ${strategy.name} ===`);
+
+      wx.showToast({
+        title: strategy.name+' 创建对局中...',
+        icon: 'none',
+        duration: 1000
+      });
+      
+      // 等待toast显示完成
+      this.sleep(200);
+      
+      try {
+        const result = this[strategy.method](validMatches, numMatches, playerList, playersObj);
+        
+        if (result) {
+          console.log(`✅ ${strategy.name}成功生成对阵！`);
+          return result;
+        }
+        
+        // 策略失败，显示提示并继续下一个策略
+        if (i < strategies.length - 1) { // 不是最后一个策略
+          console.log(`❌ ${strategy.name}失败，尝试下一个策略`);
+          wx.showToast({
+            title: strategy.toast,
+            icon: 'none',
+            duration: 1000
+          });
+          
+          // 等待toast显示完成
+          this.sleep(1000);
+        }
+        
+      } catch (error) {
+        console.error(`${strategy.name}执行出错:`, error);
+        
+        // 策略出错，显示提示并继续下一个策略
+        if (i < strategies.length - 1) { // 不是最后一个策略
+          wx.showToast({
+            title: strategy.toast,
+            icon: 'none',
+            duration: 1000
+          });
+          
+          // 等待toast显示完成
+          this.sleep(1000);
+        }
+      }
+    }
+    
+    // 所有策略都失败了
+    throw new Error('所有对阵生成策略都失败了');
   },
 
   // 选择平衡的对战组合
@@ -407,6 +461,35 @@ Page({
     throw new Error(`在${maxAttempts}次尝试后仍无法找到满足完全相等条件的${n}组对战`);
   },
 
+  // 兜底策略：使用最简单的随机选择方法
+  selectBalancedMatchesFallback: function(validMatches, n, playerList, players) {
+    console.log('\n=== 使用兜底策略生成对阵 ===');
+    console.log('⚠️ 所有优化策略都失败了，使用最简单的随机选择方法');
+    
+    // 随机选择n组对战，不保证平衡
+    const shuffled = [...validMatches];
+    this.shuffleArray(shuffled);
+    const selectedMatches = shuffled.slice(0, n);
+    
+    // 计算选手出场次数
+    const playerCounts = {};
+    playerList.forEach(player => {
+      playerCounts[player] = 0;
+    });
+    
+    selectedMatches.forEach(match => {
+      const matchPlayers = [...match.pair1, ...match.pair2];
+      matchPlayers.forEach(player => {
+        playerCounts[player]++;
+      });
+    });
+    
+    console.log('兜底策略生成的选手出场次数:', playerCounts);
+    console.log('⚠️ 注意：兜底策略不保证选手出场次数完全相等');
+    
+    return this.formatMatches(selectedMatches, playerCounts, players);
+  },
+
   // 使用回溯法选择平衡的对战组合
   selectBalancedMatchesBackTrace: function(validMatches, n, playerList, players) {
     console.log('\n=== 使用回溯法选择平衡对战组合 ===');
@@ -422,27 +505,15 @@ Page({
     });
     
     // 调用回溯函数
-    var result = this.backtrack(validMatches, n, playerCounts, targetCount, playerList, players, [], 0);
-    result = null
+    const result = this.backtrack(validMatches, n, playerCounts, targetCount, playerList, players, [], 0);
+    
     if (result) {
       console.log('✅ 回溯法找到满足条件的对战组合！');
       console.log('选手出场次数:', result.playerCounts);
       return this.formatMatches(result.matches, result.playerCounts, players);
     } else {
       console.log('❌ 回溯法未找到满足条件的对战组合');
-      // 显示降级提示
-      wx.showToast({
-        title: '回溯法未找到最优解，使用备选方案',
-        icon: 'none',
-        duration: 1000
-      });
-      
-      // 同步等待toast显示完成
-      this.sleep(1000);
-      
-      // 回退到原来的方法
-      console.log('回退到原来的选择方法...');
-      return this.selectBalancedMatches(validMatches, n, playerList, players);
+      return null; // 返回null表示失败
     }
   },
 
