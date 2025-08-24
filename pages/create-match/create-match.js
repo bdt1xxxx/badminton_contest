@@ -12,12 +12,12 @@ Page({
     selectedRounds: 4
   },
 
-  onLoad: function() {
+  onLoad: function () {
     console.log('页面加载成功');
   },
 
   // 输入比赛名称
-  onMatchNameInput: function(e) {
+  onMatchNameInput: function (e) {
     console.log('输入比赛名称:', e.detail.value);
     this.setData({
       matchName: e.detail.value
@@ -25,7 +25,7 @@ Page({
   },
 
   // 选择比赛类型
-  onTypeChange: function(e) {
+  onTypeChange: function (e) {
     console.log('选择比赛类型:', e.detail.value);
     const matchType = this.data.matchTypes[e.detail.value];
     this.setData({
@@ -34,7 +34,7 @@ Page({
   },
 
   // 设置最大参赛人数
-  onMaxPlayersChange: function(e) {
+  onMaxPlayersChange: function (e) {
     console.log('设置最大参赛人数:', e.detail.value);
     const newMaxPlayers = parseInt(e.detail.value) + 1;
     this.setData({
@@ -43,11 +43,11 @@ Page({
   },
 
   // 输入参赛选手姓名
-  onPlayerInput: function(e) {
+  onPlayerInput: function (e) {
     const index = e.currentTarget.dataset.index;
     const value = e.detail.value;
     console.log('输入选手姓名:', index, value);
-    
+
     // 简单的选手管理
     const players = this.data.players;
     if (value && value.trim()) {
@@ -64,20 +64,20 @@ Page({
         players.splice(index, 1);
       }
     }
-    
+
     this.setData({
       players: players
     });
   },
 
   // 分数变化处理
-  onScoreChange: function(e) {
+  onScoreChange: function (e) {
     const index = e.currentTarget.dataset.index;
     const scoreIndex = e.detail.value;
-    const scores = [1,1.5,2,2.5,3,3.5,4,4.5,5,5.5,6,6.5,7,7.5,8,8.5,9,9.5,10];
+    const scores = [1, 1.5, 2, 2.5, 3, 3.5, 4, 4.5, 5, 5.5, 6, 6.5, 7, 7.5, 8, 8.5, 9, 9.5, 10];
     const newScore = scores[scoreIndex];
     console.log('分数变化:', index, newScore);
-    
+
     if (index < this.data.players.length) {
       const players = this.data.players;
       players[index].score = newScore;
@@ -88,7 +88,7 @@ Page({
   },
 
   // 显示确认对话框
-  showConfirmDialog: function() {
+  showConfirmDialog: function () {
     console.log('显示确认对话框');
     if (!this.data.matchName || !this.data.matchName.trim()) {
       wx.showToast({
@@ -124,18 +124,18 @@ Page({
   },
 
   // 隐藏确认对话框
-  hideConfirmDialog: function() {
+  hideConfirmDialog: function () {
     this.setData({
       showConfirmDialog: false
     });
   },
 
   // 组间等级差距变化
-  onLevelGapChange: function(e) {
+  onLevelGapChange: function (e) {
     const index = e.detail.value;
     const levelGap = [0, 0.5, 1, 1.5, 2][index];
     console.log('组间等级差距变化:', levelGap);
-    
+
     this.setData({
       levelGapIndex: index,
       levelGap: levelGap
@@ -143,18 +143,18 @@ Page({
   },
 
   // 选择比赛局数
-  onRoundSelect: function(e) {
+  onRoundSelect: function (e) {
     const index = e.currentTarget.dataset.index;
     console.log('选择比赛局数:', index);
-    
+
     const currentRoundOptions = this.data.roundOptions;
     const newRoundOptions = currentRoundOptions.map((item, i) => ({
       ...item,
       checked: i === index
     }));
-    
+
     const newSelectedRounds = newRoundOptions[index].value;
-    
+
     this.setData({
       roundOptions: newRoundOptions,
       selectedRounds: newSelectedRounds
@@ -162,7 +162,7 @@ Page({
   },
 
   // 创建比赛
-  createMatch: function() {
+  createMatch: function () {
     try {
       console.log('开始创建比赛...');
       console.log('比赛数据:', {
@@ -203,18 +203,18 @@ Page({
       // 保存到本地存储
       let storedMatches = wx.getStorageSync('matches') || [];
       console.log('当前存储的比赛列表:', storedMatches);
-      
+
       storedMatches.unshift(match);
       console.log('添加新比赛后的列表:', storedMatches);
-      
+
       wx.setStorageSync('matches', storedMatches);
-      
+
       // 验证保存是否成功
       const savedMatches = wx.getStorageSync('matches');
       console.log('保存后重新读取的比赛列表:', savedMatches);
-      
+
       console.log('比赛保存成功:', match);
-      
+
       wx.showToast({
         title: '比赛创建成功',
         icon: 'success'
@@ -241,24 +241,24 @@ Page({
   },
 
   // 生成对阵算法
-  generateMatches: function() {
+  generateMatches: function () {
     const players = this.data.players;
     const numPlayers = players.length;
     const numMatches = this.data.selectedRounds;
     const levelGap = this.data.levelGap;
-    
+
     console.log('开始生成对阵:', { players, numPlayers, numMatches, levelGap });
-    
+
     if (numPlayers < 4) {
       throw new Error('至少需要4名选手才能生成对阵');
     }
-    
+
     // 构建players对象，格式为 {name: level}
     const playersObj = {};
     players.forEach(player => {
       playersObj[player.name] = parseFloat(player.score);
     });
-    
+
     // 输入验证
     if (!playersObj || Object.keys(playersObj).length === 0) {
       throw new Error('选手信息不能为空');
@@ -271,7 +271,7 @@ Page({
     }
 
     const playerList = Object.keys(playersObj);
-    
+
     console.log('=== 开始生成对阵 ===');
     console.log(`选手数量: ${numPlayers}`);
     console.log(`对阵场数: ${numMatches}`);
@@ -287,7 +287,7 @@ Page({
       for (let j = i + 1; j < pairs.length; j++) {
         const pair1 = pairs[i];
         const pair2 = pairs[j];
-        
+
         // 确保4个不重复的选手
         const allPlayers = new Set([...pair1, ...pair2]);
         if (allPlayers.size === 4) {
@@ -295,7 +295,7 @@ Page({
           const level1 = playersObj[pair1[0]] + playersObj[pair1[1]];
           const level2 = playersObj[pair2[0]] + playersObj[pair2[1]];
           const levelDiff = Math.abs(level1 - level2);
-          
+
           // 检查等级差是否满足要求
           if (levelDiff <= levelGap) {
             validMatches.push({
@@ -318,7 +318,7 @@ Page({
 
     // Step 3: 从有效组合中选择n组，确保每个人出场次数相等
     console.log('\n=== 开始执行策略链生成对阵 ===');
-    
+
     // 定义策略链
     const strategies = [
       {
@@ -337,29 +337,29 @@ Page({
         toast: '所有策略都失败了'
       }
     ];
-    
+
     // 执行策略链
     for (let i = 0; i < strategies.length; i++) {
       const strategy = strategies[i];
       console.log(`\n=== 尝试策略${i + 1}: ${strategy.name} ===`);
 
       wx.showToast({
-        title: strategy.name+' 创建对局中...',
+        title: strategy.name + ' 创建对局中...',
         icon: 'none',
         duration: 1000
       });
-      
+
       // 等待toast显示完成
       this.sleep(200);
-      
+
       try {
         const result = this[strategy.method](validMatches, numMatches, playerList, playersObj);
-        
+
         if (result) {
           console.log(`✅ ${strategy.name}成功生成对阵！`);
           return result;
         }
-        
+
         // 策略失败，显示提示并继续下一个策略
         if (i < strategies.length - 1) { // 不是最后一个策略
           console.log(`❌ ${strategy.name}失败，尝试下一个策略`);
@@ -368,14 +368,14 @@ Page({
             icon: 'none',
             duration: 1000
           });
-          
+
           // 等待toast显示完成
           this.sleep(1000);
         }
-        
+
       } catch (error) {
         console.error(`${strategy.name}执行出错:`, error);
-        
+
         // 策略出错，显示提示并继续下一个策略
         if (i < strategies.length - 1) { // 不是最后一个策略
           wx.showToast({
@@ -383,142 +383,44 @@ Page({
             icon: 'none',
             duration: 1000
           });
-          
+
           // 等待toast显示完成
           this.sleep(1000);
         }
       }
     }
-    
+
     // 所有策略都失败了
     throw new Error('所有对阵生成策略都失败了');
   },
 
-  // 选择平衡的对战组合
-  selectBalancedMatches: function(validMatches, n, playerList, players) {
-    const maxAttempts = 10000;
-    let attempts = 0;
-    
-    while (attempts < maxAttempts) {
-      // 打乱有效组合顺序
-      this.shuffleArray(validMatches);
-      
-      const selectedMatches = [];
-      const playerCounts = {};
-      
-      // 初始化每个选手的出场次数
-      playerList.forEach(player => {
-        playerCounts[player] = 0;
-      });
-      
-      // 尝试选择n组对战
-      for (const match of validMatches) {
-        if (selectedMatches.length >= n) {
-          break;
-        }
-        
-        // 检查这组对战是否会导致出场次数差异过大
-        const tempCounts = { ...playerCounts };
-        const matchPlayers = [...match.pair1, ...match.pair2];
-        
-        // 临时增加出场次数
-        matchPlayers.forEach(player => {
-          tempCounts[player]++;
-        });
-        
-        // 检查是否会导致出场次数差异过大
-        const counts = Object.values(tempCounts);
-        const minCount = Math.min(...counts);
-        const maxCount = Math.max(...counts);
-        
-        // 允许一定的差异，但不能过大（差异不超过2）
-        if (maxCount - minCount <= 2) {
-          selectedMatches.push(match);
-          // 更新playerCounts对象的内容，而不是重新赋值
-          Object.keys(tempCounts).forEach(key => {
-            playerCounts[key] = tempCounts[key];
-          });
-        }
-      }
-      
-      // 如果成功选择了n组对战，检查是否满足完全相等条件
-      if (selectedMatches.length === n) {
-        const counts = Object.values(playerCounts);
-        const firstCount = counts[0];
-        const allEqual = counts.every(count => count === firstCount);
-        
-        // 只有当所有选手出场次数都相等时，才认为满足条件
-        if (allEqual) {
-          console.log('找到满足条件的对战组合！所有选手出场次数相等');
-          console.log('选手出场次数:', playerCounts);
-          return this.formatMatches(selectedMatches, playerCounts, players);
-        }
-      }
-      
-      attempts++;
-    }
-    
-    throw new Error(`在${maxAttempts}次尝试后仍无法找到满足完全相等条件的${n}组对战`);
-  },
-
-  // 兜底策略：使用最简单的随机选择方法
-  selectBalancedMatchesFallback: function(validMatches, n, playerList, players) {
-    console.log('\n=== 使用兜底策略生成对阵 ===');
-    console.log('⚠️ 所有优化策略都失败了，使用最简单的随机选择方法');
-    
-    // 随机选择n组对战，不保证平衡
-    const shuffled = [...validMatches];
-    this.shuffleArray(shuffled);
-    const selectedMatches = shuffled.slice(0, n);
-    
-    // 计算选手出场次数
-    const playerCounts = {};
-    playerList.forEach(player => {
-      playerCounts[player] = 0;
-    });
-    
-    selectedMatches.forEach(match => {
-      const matchPlayers = [...match.pair1, ...match.pair2];
-      matchPlayers.forEach(player => {
-        playerCounts[player]++;
-      });
-    });
-    
-    console.log('兜底策略生成的选手出场次数:', playerCounts);
-    console.log('⚠️ 注意：兜底策略不保证选手出场次数完全相等');
-    
-    return this.formatMatches(selectedMatches, playerCounts, players);
-  },
 
   // 使用回溯法选择平衡的对战组合
-  selectBalancedMatchesBackTrace: function(validMatches, n, playerList, players) {
+  selectBalancedMatchesBackTrace: function (validMatches, n, playerList, players) {
     console.log('\n=== 使用回溯法选择平衡对战组合 ===');
-    
+
     // 计算每个选手应该的出场次数
     const targetCount = (n * 4) / playerList.length;
     console.log(`目标：每个选手出场${targetCount}次`);
-    
+
     // 初始化选手出场次数和已选择的对战
     const playerCounts = {};
     playerList.forEach(player => {
       playerCounts[player] = 0;
     });
-    
+
     // 调用回溯函数
     const result = this.backtrack(validMatches, n, playerCounts, targetCount, playerList, players, [], 0);
-    
+
     if (result) {
-      console.log('✅ 回溯法找到满足条件的对战组合！');
-      console.log('选手出场次数:', result.playerCounts);
       return this.formatMatches(result.matches, result.playerCounts, players);
     } else {
-      console.log('❌ 回溯法未找到满足条件的对战组合');
       return null; // 返回null表示失败
     }
   },
 
   // 同步延迟函数
-  sleep: function(ms) {
+  sleep: function (ms) {
     const start = Date.now();
     while (Date.now() - start < ms) {
       // 阻塞主线程
@@ -526,14 +428,14 @@ Page({
   },
 
   // 回溯函数
-  backtrack: function(validMatches, n, playerCounts, targetCount, playerList, players, selectedMatches, startIndex) {
+  backtrack: function (validMatches, n, playerCounts, targetCount, playerList, players, selectedMatches, startIndex) {
     // 检查是否已经选择了足够的对战
     if (selectedMatches.length >= n) {
       // 检查是否所有选手出场次数都相等
       const counts = Object.values(playerCounts);
       const firstCount = counts[0];
       const allEqual = counts.every(count => count === firstCount);
-      
+
       if (allEqual) {
         console.log('找到满足条件的组合！');
         return {
@@ -543,27 +445,27 @@ Page({
       }
       return null;
     }
-    
+
     // 检查是否有选手出场次数超出目标
     for (const player of playerList) {
       if (playerCounts[player] > targetCount) {
         return null; // 结束本次探索
       }
     }
-    
+
     // 尝试添加下一个对战，从startIndex开始
     for (let i = startIndex; i < validMatches.length; i++) {
       const match = validMatches[i];
-      
+
       // 检查这组对战是否会导致出场次数不平衡
       const tempCounts = { ...playerCounts };
       const matchPlayers = [...match.pair1, ...match.pair2];
-      
+
       // 临时增加出场次数
       matchPlayers.forEach(player => {
         tempCounts[player]++;
       });
-      
+
       // 检查是否会导致出场次数超出目标
       let valid = true;
       for (const player of playerList) {
@@ -572,7 +474,7 @@ Page({
           break;
         }
       }
-      
+
       if (valid) {
         // 递归调用，传入i+1作为下一个startIndex
         const result = this.backtrack(validMatches, n, tempCounts, targetCount, playerList, players, [...selectedMatches, match], i + 1);
@@ -581,19 +483,117 @@ Page({
         }
       }
     }
-    
+
     return null;
   },
 
+
+  // 选择平衡的对战组合
+  selectBalancedMatches: function (validMatches, n, playerList, players) {
+    const maxAttempts = 10000;
+    let attempts = 0;
+
+    while (attempts < maxAttempts) {
+      // 打乱有效组合顺序
+      this.shuffleArray(validMatches);
+
+      const selectedMatches = [];
+      const playerCounts = {};
+
+      // 初始化每个选手的出场次数
+      playerList.forEach(player => {
+        playerCounts[player] = 0;
+      });
+
+      // 尝试选择n组对战
+      for (const match of validMatches) {
+        if (selectedMatches.length >= n) {
+          break;
+        }
+
+        // 检查这组对战是否会导致出场次数差异过大
+        const tempCounts = { ...playerCounts };
+        const matchPlayers = [...match.pair1, ...match.pair2];
+
+        // 临时增加出场次数
+        matchPlayers.forEach(player => {
+          tempCounts[player]++;
+        });
+
+        // 检查是否会导致出场次数差异过大
+        const counts = Object.values(tempCounts);
+        const minCount = Math.min(...counts);
+        const maxCount = Math.max(...counts);
+
+        // 允许一定的差异，但不能过大（差异不超过2）
+        if (maxCount - minCount <= 2) {
+          selectedMatches.push(match);
+          // 更新playerCounts对象的内容，而不是重新赋值
+          Object.keys(tempCounts).forEach(key => {
+            playerCounts[key] = tempCounts[key];
+          });
+        }
+      }
+
+      // 如果成功选择了n组对战，检查是否满足完全相等条件
+      if (selectedMatches.length === n) {
+        const counts = Object.values(playerCounts);
+        const firstCount = counts[0];
+        const allEqual = counts.every(count => count === firstCount);
+
+        // 只有当所有选手出场次数都相等时，才认为满足条件
+        if (allEqual) {
+          console.log('找到满足条件的对战组合！所有选手出场次数相等');
+          console.log('选手出场次数:', playerCounts);
+          return this.formatMatches(selectedMatches, playerCounts, players);
+        }
+      }
+
+      attempts++;
+    }
+
+    throw new Error(`在${maxAttempts}次尝试后仍无法找到满足完全相等条件的${n}组对战`);
+  },
+
+
+  // 兜底策略：使用最简单的随机选择方法
+  selectBalancedMatchesFallback: function (validMatches, n, playerList, players) {
+    console.log('\n=== 使用兜底策略生成对阵 ===');
+    console.log('⚠️ 所有优化策略都失败了，使用最简单的随机选择方法');
+
+    // 随机选择n组对战，不保证平衡
+    const shuffled = [...validMatches];
+    this.shuffleArray(shuffled);
+    const selectedMatches = shuffled.slice(0, n);
+
+    // 计算选手出场次数
+    const playerCounts = {};
+    playerList.forEach(player => {
+      playerCounts[player] = 0;
+    });
+
+    selectedMatches.forEach(match => {
+      const matchPlayers = [...match.pair1, ...match.pair2];
+      matchPlayers.forEach(player => {
+        playerCounts[player]++;
+      });
+    });
+
+    console.log('兜底策略生成的选手出场次数:', playerCounts);
+    console.log('⚠️ 注意：兜底策略不保证选手出场次数完全相等');
+
+    return this.formatMatches(selectedMatches, playerCounts, players);
+  },
+
   // 格式化对战结果
-  formatMatches: function(matches, playerCounts, players) {
+  formatMatches: function (matches, playerCounts, players) {
     const result = [];
-    
+
     console.log('\n=== 生成的对阵详情 ===');
     matches.forEach((match, index) => {
       // 只需要一个场次标记，从1到n
       const matchId = index + 1;
-      
+
       const matchObj = {
         id: matchId,
         team1: {
@@ -608,22 +608,22 @@ Page({
         },
         levelDiff: match.levelDiff
       };
-      
+
       result.push(matchObj);
-      
+
       console.log(`第${matchId}场: (${match.pair1[0]}+${match.pair1[1]}) vs (${match.pair2[0]}+${match.pair2[1]})`);
       console.log(`  等级和: ${match.level1.toFixed(1)} vs ${match.level2.toFixed(1)}`);
       console.log(`  等级差: ${match.levelDiff.toFixed(1)}`);
     });
-    
+
     console.log('\n=== 选手出场统计 ===');
     Object.entries(playerCounts).forEach(([player, count]) => {
       console.log(`${player}: ${count}场`);
     });
-    
+
     // 对比赛序列进行排序优化，确保相邻比赛参赛队员不重复
     const optimizedResult = this.optimizeMatchSequence(result);
-    
+
     return {
       matches: optimizedResult,
       playerCounts: playerCounts
@@ -631,39 +631,39 @@ Page({
   },
 
   // 优化比赛序列，确保相邻比赛参赛队员不重复
-  optimizeMatchSequence: function(matches) {
+  optimizeMatchSequence: function (matches) {
     if (matches.length <= 1) {
       return matches;
     }
-    
+
     console.log('\n=== 开始优化比赛序列 ===');
-    
+
     // 尝试多次优化，直到找到无冲突的序列
     const maxAttempts = 10;
     let bestResult = null;
     let bestConflictCount = Infinity;
-    
+
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       console.log(`\n--- 第${attempt}次尝试优化 ---`);
-      
+
       const result = this.attemptOptimization(matches);
       const totalConflicts = this.calculateTotalConflicts(result);
-      
+
       console.log(`第${attempt}次尝试结果: 总冲突数 = ${totalConflicts}`);
-      
+
       if (totalConflicts === 0) {
         console.log('✅ 找到完全无冲突的比赛序列！');
         // 重新编号，确保ID连续
         this.renumberMatches(result);
         return result;
       }
-      
+
       if (totalConflicts < bestConflictCount) {
         bestConflictCount = totalConflicts;
         bestResult = result;
         console.log(`更新最佳结果: 总冲突数 = ${bestConflictCount}`);
       }
-      
+
       // 如果冲突数很少，也可以接受
       if (totalConflicts <= 1) {
         console.log(`✅ 找到低冲突的比赛序列，冲突数 = ${totalConflicts}`);
@@ -672,12 +672,12 @@ Page({
         return result;
       }
     }
-    
+
     console.log(`⚠️ 经过${maxAttempts}次尝试，未找到完全无冲突的序列，返回最佳结果`);
-    
+
     // 重新编号，确保ID连续
     this.renumberMatches(bestResult);
-    
+
     // 显示最终结果
     console.log('\n=== 最终优化结果 ===');
     bestResult.forEach((match, index) => {
@@ -688,7 +688,7 @@ Page({
         match.team2.player2.name
       ];
       console.log(`第${match.id}场: ${players.join(', ')}`);
-      
+
       // 检查与上一场比赛的冲突
       if (index > 0) {
         const prevMatch = bestResult[index - 1];
@@ -700,7 +700,7 @@ Page({
         }
       }
     });
-    
+
     console.log(`\n总冲突数: ${bestConflictCount}`);
     if (bestConflictCount === 0) {
       console.log('🎉 完美！所有相邻比赛都无重复选手');
@@ -709,12 +709,12 @@ Page({
     } else {
       console.log('⚠️ 仍有较多冲突，建议检查选手数量是否足够');
     }
-    
+
     return bestResult;
   },
 
   // 重新编号比赛，确保ID连续
-  renumberMatches: function(matches) {
+  renumberMatches: function (matches) {
     console.log('\n=== 重新编号比赛 ===');
     matches.forEach((match, index) => {
       const oldId = match.id;
@@ -725,108 +725,108 @@ Page({
   },
 
   // 单次尝试优化
-  attemptOptimization: function(matches) {
+  attemptOptimization: function (matches) {
     const result = [matches[0]]; // 第一场比赛保持不变
     let remaining = [...matches.slice(1)];
-    
+
     while (remaining.length > 0) {
       let bestNextIndex = -1;
       let bestScore = -1;
-      
+
       // 找到与当前最后一场比赛冲突最少的下一场比赛
       for (let i = 0; i < remaining.length; i++) {
         const currentMatch = result[result.length - 1];
         const nextMatch = remaining[i];
-        
+
         // 计算冲突分数（重复选手数量）
         const conflictScore = this.calculateConflictScore(currentMatch, nextMatch);
-        
+
         // 冲突越少，分数越高
         const score = 4 - conflictScore; // 4个选手，无冲突时分数为4
-        
+
         if (score > bestScore) {
           bestScore = score;
           bestNextIndex = i;
         }
       }
-      
+
       // 如果找不到无冲突的比赛，重新打乱剩余比赛顺序
       if (bestScore === 0) {
         this.shuffleArray(remaining);
         bestNextIndex = 0;
         bestScore = 4 - this.calculateConflictScore(result[result.length - 1], remaining[0]);
       }
-      
+
       // 将选中的比赛添加到结果中
       const selectedMatch = remaining.splice(bestNextIndex, 1)[0];
       result.push(selectedMatch);
-      
+
       // 如果冲突分数为0，说明找到了无冲突的比赛，重置remaining数组
       if (bestScore === 4) {
-        remaining = [...matches.slice(1)].filter(m => 
+        remaining = [...matches.slice(1)].filter(m =>
           !result.some(r => r.id === m.id)
         );
         this.shuffleArray(remaining);
       }
     }
-    
+
     return result;
   },
 
   // 计算整个序列的总冲突数
-  calculateTotalConflicts: function(matches) {
+  calculateTotalConflicts: function (matches) {
     let totalConflicts = 0;
-    
+
     for (let i = 1; i < matches.length; i++) {
-      const conflictScore = this.calculateConflictScore(matches[i-1], matches[i]);
+      const conflictScore = this.calculateConflictScore(matches[i - 1], matches[i]);
       totalConflicts += conflictScore;
     }
-    
+
     return totalConflicts;
   },
 
   // 计算两场比赛之间的冲突分数（重复选手数量）
-  calculateConflictScore: function(match1, match2) {
+  calculateConflictScore: function (match1, match2) {
     const players1 = new Set([
       match1.team1.player1.name,
       match1.team1.player2.name,
       match1.team2.player1.name,
       match1.team2.player2.name
     ]);
-    
+
     const players2 = new Set([
       match2.team1.player1.name,
       match2.team1.player2.name,
       match2.team2.player1.name,
       match2.team2.player2.name
     ]);
-    
+
     let conflicts = 0;
     for (const player of players1) {
       if (players2.has(player)) {
         conflicts++;
       }
     }
-    
+
     return conflicts;
   },
 
   // 获取冲突的选手列表
-  getConflictingPlayers: function(match1, match2) {
+  getConflictingPlayers: function (match1, match2) {
     const players1 = new Set([
       match1.team1.player1.name,
       match1.team1.player2.name,
       match1.team2.player1.name,
       match1.team2.player2.name
     ]);
-    
+
     const players2 = new Set([
       match2.team1.player1.name,
       match2.team1.player2.name,
       match2.team2.player1.name,
       match2.team2.player2.name
     ]);
-    
+
     const conflictingPlayers = [];
     for (const player of players1) {
       if (players2.has(player)) {
@@ -837,29 +837,29 @@ Page({
   },
 
   // 生成组合
-  generateCombinations: function(arr, r) {
+  generateCombinations: function (arr, r) {
     const combinations = [];
     const n = arr.length;
-    
+
     function backtrack(start, combo) {
       if (combo.length === r) {
         combinations.push([...combo]);
         return;
       }
-      
+
       for (let i = start; i < n; i++) {
         combo.push(arr[i]);
         backtrack(i + 1, combo);
         combo.pop();
       }
     }
-    
+
     backtrack(0, []);
     return combinations;
   },
 
   // 检查两个集合是否有交集
-  hasIntersection: function(set1, set2) {
+  hasIntersection: function (set1, set2) {
     for (const item of set1) {
       if (set2.has(item)) {
         return true;
@@ -869,12 +869,12 @@ Page({
   },
 
   // 获取配对键
-  getPairKey: function(pair) {
+  getPairKey: function (pair) {
     return pair.sort().join(',');
   },
 
   // 打乱数组
-  shuffleArray: function(array) {
+  shuffleArray: function (array) {
     for (let i = array.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [array[i], array[j]] = [array[j], array[i]];
@@ -882,7 +882,7 @@ Page({
   },
 
   // 计算每个选手参与的比赛次数
-  calculatePlayerCounts: function(matches) {
+  calculatePlayerCounts: function (matches) {
     const counts = {};
     matches.forEach(match => {
       const players = [
@@ -899,7 +899,7 @@ Page({
   },
 
   // 计算轮空次数 - 新算法中不再需要
-  calculateByeCounts: function(matches) {
+  calculateByeCounts: function (matches) {
     return {};
   }
 }); 
