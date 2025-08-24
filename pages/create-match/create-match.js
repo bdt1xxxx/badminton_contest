@@ -372,13 +372,13 @@ Page({
           tempCounts[player]++;
         });
         
-        // 检查是否会导致出场次数差异过大
+        // 检查是否会导致出场次数不相等
         const counts = Object.values(tempCounts);
-        const minCount = Math.min(...counts);
-        const maxCount = Math.max(...counts);
+        const firstCount = counts[0];
+        const allEqual = counts.every(count => count === firstCount);
         
-        // 如果差异不超过1，则可以选择这组对战
-        if (maxCount - minCount <= 1) {
+        // 只有当所有选手出场次数都相等时，才可以选择这组对战
+        if (allEqual) {
           selectedMatches.push(match);
           // 更新playerCounts对象的内容，而不是重新赋值
           Object.keys(tempCounts).forEach(key => {
@@ -387,15 +387,16 @@ Page({
         }
       }
       
-      // 如果成功选择了n组对战，检查是否满足平衡条件
+      // 如果成功选择了n组对战，检查是否满足完全相等条件
       if (selectedMatches.length === n) {
         const counts = Object.values(playerCounts);
-        const minCount = Math.min(...counts);
-        const maxCount = Math.max(...counts);
+        const firstCount = counts[0];
+        const allEqual = counts.every(count => count === firstCount);
         
-        // 如果最大差异不超过1，则认为满足平衡条件
-        if (maxCount - minCount <= 1) {
-          console.log('找到满足条件的对战组合！');
+        // 只有当所有选手出场次数都相等时，才认为满足条件
+        if (allEqual) {
+          console.log('找到满足条件的对战组合！所有选手出场次数相等');
+          console.log('选手出场次数:', playerCounts);
           return this.formatMatches(selectedMatches, playerCounts, players);
         }
       }
@@ -403,7 +404,7 @@ Page({
       attempts++;
     }
     
-    throw new Error(`在${maxAttempts}次尝试后仍无法找到满足平衡条件的${n}组对战`);
+    throw new Error(`在${maxAttempts}次尝试后仍无法找到满足完全相等条件的${n}组对战`);
   },
 
   // 格式化对战结果
