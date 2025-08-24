@@ -363,7 +363,7 @@ Page({
           break;
         }
         
-        // 检查这组对战是否会导致出场次数不平衡
+        // 检查这组对战是否会导致出场次数差异过大
         const tempCounts = { ...playerCounts };
         const matchPlayers = [...match.pair1, ...match.pair2];
         
@@ -372,13 +372,13 @@ Page({
           tempCounts[player]++;
         });
         
-        // 检查是否会导致出场次数不相等
+        // 检查是否会导致出场次数差异过大
         const counts = Object.values(tempCounts);
-        const firstCount = counts[0];
-        const allEqual = counts.every(count => count === firstCount);
+        const minCount = Math.min(...counts);
+        const maxCount = Math.max(...counts);
         
-        // 只有当所有选手出场次数都相等时，才可以选择这组对战
-        if (allEqual) {
+        // 允许一定的差异，但不能过大（差异不超过2）
+        if (maxCount - minCount <= 2) {
           selectedMatches.push(match);
           // 更新playerCounts对象的内容，而不是重新赋值
           Object.keys(tempCounts).forEach(key => {
@@ -422,17 +422,35 @@ Page({
     });
     
     // 调用回溯函数
-    const result = this.backtrack(validMatches, n, playerCounts, targetCount, playerList, players, [], 0);
-    
+    var result = this.backtrack(validMatches, n, playerCounts, targetCount, playerList, players, [], 0);
+    result = null
     if (result) {
       console.log('✅ 回溯法找到满足条件的对战组合！');
       console.log('选手出场次数:', result.playerCounts);
       return this.formatMatches(result.matches, result.playerCounts, players);
     } else {
       console.log('❌ 回溯法未找到满足条件的对战组合');
+      // 显示降级提示
+      wx.showToast({
+        title: '回溯法未找到最优解，使用备选方案',
+        icon: 'none',
+        duration: 1000
+      });
+      
+      // 同步等待toast显示完成
+      this.sleep(1000);
+      
       // 回退到原来的方法
       console.log('回退到原来的选择方法...');
       return this.selectBalancedMatches(validMatches, n, playerList, players);
+    }
+  },
+
+  // 同步延迟函数
+  sleep: function(ms) {
+    const start = Date.now();
+    while (Date.now() - start < ms) {
+      // 阻塞主线程
     }
   },
 
