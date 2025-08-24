@@ -334,7 +334,7 @@ Page({
     }
 
     // Step 3: 从有效组合中选择n组，确保每个人出场次数相等
-    const result = this.selectBalancedMatches(validMatches, n, playerList, players);
+    const result = this.selectBalancedMatchesBackTrace(validMatches, n, playerList, players);
     
     console.log('=== 对阵生成完成 ===');
     return result;
@@ -405,6 +405,95 @@ Page({
     }
     
     throw new Error(`在${maxAttempts}次尝试后仍无法找到满足完全相等条件的${n}组对战`);
+  },
+
+  // 使用回溯法选择平衡的对战组合
+  selectBalancedMatchesBackTrace: function(validMatches, n, playerList, players) {
+    console.log('\n=== 使用回溯法选择平衡对战组合 ===');
+    
+    // 计算每个选手应该的出场次数
+    const targetCount = (n * 4) / playerList.length;
+    console.log(`目标：每个选手出场${targetCount}次`);
+    
+    // 初始化选手出场次数和已选择的对战
+    const playerCounts = {};
+    playerList.forEach(player => {
+      playerCounts[player] = 0;
+    });
+    
+    // 调用回溯函数
+    const result = this.backtrack(validMatches, n, playerCounts, targetCount, playerList, players, [], 0);
+    
+    if (result) {
+      console.log('✅ 回溯法找到满足条件的对战组合！');
+      console.log('选手出场次数:', result.playerCounts);
+      return this.formatMatches(result.matches, result.playerCounts, players);
+    } else {
+      console.log('❌ 回溯法未找到满足条件的对战组合');
+      // 回退到原来的方法
+      console.log('回退到原来的选择方法...');
+      return this.selectBalancedMatches(validMatches, n, playerList, players);
+    }
+  },
+
+  // 回溯函数
+  backtrack: function(validMatches, n, playerCounts, targetCount, playerList, players, selectedMatches, startIndex) {
+    // 检查是否已经选择了足够的对战
+    if (selectedMatches.length >= n) {
+      // 检查是否所有选手出场次数都相等
+      const counts = Object.values(playerCounts);
+      const firstCount = counts[0];
+      const allEqual = counts.every(count => count === firstCount);
+      
+      if (allEqual) {
+        console.log('找到满足条件的组合！');
+        return {
+          matches: [...selectedMatches],
+          playerCounts: { ...playerCounts }
+        };
+      }
+      return null;
+    }
+    
+    // 检查是否有选手出场次数超出目标
+    for (const player of playerList) {
+      if (playerCounts[player] > targetCount) {
+        return null; // 结束本次探索
+      }
+    }
+    
+    // 尝试添加下一个对战，从startIndex开始
+    for (let i = startIndex; i < validMatches.length; i++) {
+      const match = validMatches[i];
+      
+      // 检查这组对战是否会导致出场次数不平衡
+      const tempCounts = { ...playerCounts };
+      const matchPlayers = [...match.pair1, ...match.pair2];
+      
+      // 临时增加出场次数
+      matchPlayers.forEach(player => {
+        tempCounts[player]++;
+      });
+      
+      // 检查是否会导致出场次数超出目标
+      let valid = true;
+      for (const player of playerList) {
+        if (tempCounts[player] > targetCount) {
+          valid = false;
+          break;
+        }
+      }
+      
+      if (valid) {
+        // 递归调用，传入i+1作为下一个startIndex
+        const result = this.backtrack(validMatches, n, tempCounts, targetCount, playerList, players, [...selectedMatches, match], i + 1);
+        if (result) {
+          return result;
+        }
+      }
+    }
+    
+    return null;
   },
 
   // 格式化对战结果
