@@ -321,6 +321,7 @@ Page({
 
     // 定义策略链
     const strategies = [
+
       {
         name: '回溯法',
         method: 'selectBalancedMatchesBackTrace',
@@ -329,12 +330,7 @@ Page({
       {
         name: '暴力法',
         method: 'selectBalancedMatches',
-        toast: '备选方案失败，使用兜底策略'
-      },
-      {
-        name: '无规则',
-        method: 'selectBalancedMatchesFallback',
-        toast: '所有策略都失败了'
+        toast: '无法找到符合要求的对战组合'
       }
     ];
 
@@ -403,14 +399,25 @@ Page({
     const targetCount = (n * 4) / playerList.length;
     console.log(`目标：每个选手出场${targetCount}次`);
 
+    // 性能优化：如果搜索空间过大，直接返回null
+    const searchSpace = this.calculateSearchSpace(validMatches.length, n, playerList.length);
+    if (searchSpace > 1000000) { // 超过100万种组合
+      console.log(`⚠️ 搜索空间过大(${searchSpace.toExponential(2)})，跳过回溯法`);
+      return null;
+    }
+
     // 初始化选手出场次数和已选择的对战
     const playerCounts = {};
     playerList.forEach(player => {
       playerCounts[player] = 0;
     });
 
+    // 设置超时时间（5秒）
+    const startTime = Date.now();
+    const timeout = 10000;
+
     // 调用回溯函数
-    const result = this.backtrack(validMatches, n, playerCounts, targetCount, playerList, players, [], 0);
+    const result = this.backtrack(validMatches, n, playerCounts, targetCount, playerList, players, [], 0, startTime, timeout);
 
     if (result) {
       return this.formatMatches(result.matches, result.playerCounts, players);
@@ -428,7 +435,13 @@ Page({
   },
 
   // 回溯函数
-  backtrack: function (validMatches, n, playerCounts, targetCount, playerList, players, selectedMatches, startIndex) {
+  backtrack: function (validMatches, n, playerCounts, targetCount, playerList, players, selectedMatches, startIndex, startTime, timeout) {
+    // 超时检查
+    if (Date.now() - startTime > timeout) {
+      console.log('⏰ 回溯法超时，停止搜索');
+      return null;
+    }
+
     // 检查是否已经选择了足够的对战
     if (selectedMatches.length >= n) {
       // 检查是否所有选手出场次数都相等
@@ -443,6 +456,11 @@ Page({
           playerCounts: { ...playerCounts }
         };
       }
+      return null;
+    }
+
+    // 优化剪枝：检查是否还有可能达到目标
+    if (!this.canReachTarget(playerCounts, targetCount, n - selectedMatches.length, playerList)) {
       return null;
     }
 
@@ -477,7 +495,7 @@ Page({
 
       if (valid) {
         // 递归调用，传入i+1作为下一个startIndex
-        const result = this.backtrack(validMatches, n, tempCounts, targetCount, playerList, players, [...selectedMatches, match], i + 1);
+        const result = this.backtrack(validMatches, n, tempCounts, targetCount, playerList, players, [...selectedMatches, match], i + 1, startTime, timeout);
         if (result) {
           return result;
         }
@@ -485,6 +503,30 @@ Page({
     }
 
     return null;
+  },
+
+  // 检查是否还有可能达到目标
+  canReachTarget: function(currentCounts, targetCount, remainingMatches, playerList) {
+    const counts = Object.values(currentCounts);
+    const minCount = Math.min(...counts);
+    const maxCount = Math.max(...counts);
+    
+    // 如果当前最大差异已经超过剩余比赛能弥补的范围，则不可能达到目标
+    const maxPossibleDiff = maxCount - minCount;
+    const maxPossibleImprovement = remainingMatches * 2; // 每场比赛最多能减少2的差异
+    
+    if (maxPossibleDiff > maxPossibleImprovement) {
+      return false;
+    }
+    
+    // 检查是否有选手已经超出太多
+    for (const count of counts) {
+      if (count > targetCount + remainingMatches) {
+        return false;
+      }
+    }
+    
+    return true;
   },
 
 
