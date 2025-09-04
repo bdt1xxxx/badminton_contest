@@ -104,4 +104,29 @@
       </view>
     </view>
   </view>
+
+  <!-- 算法执行进度显示 -->
+  <view class="progress-overlay" wx:if="{{progressInfo.currentAlgorithm}}">
+    <view class="progress-content">
+      <view class="progress-header">
+        <text class="progress-title">算法执行中...</text>
+      </view>
+      
+      <view class="progress-body">
+        <view class="algorithm-info">
+          <text class="algorithm-name">{{progressInfo.currentAlgorithm}}</text>
+          <text class="algorithm-phase">{{progressInfo.currentPhase}}</text>
+        </view>
+        
+        <view class="progress-bar">
+          <view class="progress-fill" style="width: {{progressInfo.progress}}%"></view>
+        </view>
+        
+        <view class="progress-text">
+          <text class="progress-percentage">{{progressInfo.progress}}%</text>
+          <text class="progress-steps">{{progressInfo.progress}} / {{progressInfo.totalSteps}}</text>
+        </view>
+      </view>
+    </view>
+  </view>
 </view> 

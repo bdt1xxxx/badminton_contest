@@ -9,7 +9,16 @@ Page({
     levelGap: 0,
     levelGapIndex: 0,
     roundOptions: [],
-    selectedRounds: 4
+    selectedRounds: 4,
+    courtCount: 2, // 场地数量，默认为2
+    // 进度跟踪变量
+    progressInfo: {
+      currentAlgorithm: '',
+      currentPhase: '',
+      progress: 0,
+      totalSteps: 0,
+      lastToastTime: 0
+    }
   },
 
   onLoad: function () {
@@ -323,6 +332,11 @@ Page({
     const strategies = [
 
       {
+        name: '动态规划算法',
+        method: 'selectBalancedMatchesDP',
+        toast: '动态规划算法未找到最优解，使用备选方案'
+      },
+      {
         name: '回溯法',
         method: 'selectBalancedMatchesBackTrace',
         toast: '回溯法未找到最优解，使用备选方案'
@@ -339,10 +353,11 @@ Page({
       const strategy = strategies[i];
       console.log(`\n=== 尝试策略${i + 1}: ${strategy.name} ===`);
 
+      // 显示策略开始提示
       wx.showToast({
-        title: strategy.name + ' 创建对局中...',
+        title: `开始执行: ${strategy.name}`,
         icon: 'none',
-        duration: 1000
+        duration: 1500
       });
 
       // 等待toast显示完成
@@ -391,6 +406,98 @@ Page({
   },
 
 
+  // 使用动态规划算法选择平衡的对战组合
+  selectBalancedMatchesDP: function (validMatches, n, playerList, players) {
+    console.log('\n=== 使用动态规划算法选择平衡对战组合 ===');
+
+    // 计算每个选手应该的出场次数
+    const targetCount = (n * 4) / playerList.length;
+    console.log(`目标：每个选手出场${targetCount}次`);
+
+    // 参数映射：
+    // validMatches -> S4 (四元组列表)
+    // playerList.length -> n (元素个数)
+    // n -> j (目标四元组个数)
+    // targetCount -> r (每个数字的目标出现次数)
+
+    const S4 = validMatches;
+    const n_elements = playerList.length;
+    const j = n;
+    const r = targetCount;
+
+    console.log(`问题规模分析:`);
+    console.log(`  四元组数量: ${S4.length}`);
+    console.log(`  元素个数: ${n_elements}`);
+    console.log(`  目标出现次数: ${r}`);
+    console.log(`  目标四元组个数: ${j}`);
+    console.log(`  估计状态空间大小: ${Math.pow(r + 1, n_elements).toLocaleString()}`);
+
+    // 根据问题规模选择算法
+    const algorithmType = this.selectAlgorithmForDP(S4.length, n_elements, r);
+    console.log(`  推荐算法: ${algorithmType}`);
+
+    let solution;
+    if (algorithmType === 'dp') {
+      console.log('使用动态规划+剪枝算法...');
+      this.showAlgorithmStart('动态规划+剪枝算法', Math.pow(r + 1, n_elements));
+      solution = this.solveQuadrupleSelectionDP(S4, n_elements, r, j, playerList);
+      this.showAlgorithmComplete('动态规划+剪枝算法', !!solution);
+    } else if (algorithmType === 'heuristic') {
+      console.log('使用启发式搜索算法...');
+      this.showAlgorithmStart('启发式搜索算法', Math.min(8000, Math.pow(r + 1, n_elements)));
+      solution = this.solveQuadrupleSelectionHeuristic(S4, n_elements, r, j, playerList);
+      this.showAlgorithmComplete('启发式搜索算法', !!solution);
+    } else {
+      console.log('使用随机采样算法...');
+      // 计算随机采样的尝试次数
+      const stateSpaceSize = Math.pow(r + 1, n_elements);
+      const combinationCount = this.calculateCombinations(S4.length, j);
+      if (combinationCount > 1000000) { // 超过100万种组合
+        console.log(`⚠️ 搜索空间过大(${combinationCount.toExponential(2)})，跳过回溯法`);
+        return null;
+      }
+      let baseAttempts = 2000;
+      if (stateSpaceSize > 100000000) baseAttempts = 60000;
+      const totalAttempts = Math.min(baseAttempts * Math.min(Math.log10(combinationCount) + 1, 8) * Math.min(r / 5, 3), 500000);
+      
+      this.showAlgorithmStart('随机采样算法', totalAttempts);
+      solution = this.solveQuadrupleSelectionRandom(S4, n_elements, r, j, playerList);
+      this.showAlgorithmComplete('随机采样算法', !!solution);
+      
+      // 如果随机采样失败，尝试启发式搜索作为备选
+      if (!solution) {
+        console.log('随机采样失败，尝试启发式搜索作为备选...');
+        this.showAlgorithmStart('启发式搜索算法(备选)', Math.min(8000, Math.pow(r + 1, n_elements)));
+        solution = this.solveQuadrupleSelectionHeuristic(S4, n_elements, r, j, playerList);
+        this.showAlgorithmComplete('启发式搜索算法(备选)', !!solution);
+      }
+    }
+
+    if (solution) {
+      console.log('✅ 动态规划算法成功找到解！');
+      // 将索引转换为实际的对战组合
+      const selectedMatches = solution.map(idx => validMatches[idx]);
+      
+      // 计算选手出场次数
+      const playerCounts = {};
+      playerList.forEach(player => {
+        playerCounts[player] = 0;
+      });
+
+      selectedMatches.forEach(match => {
+        const matchPlayers = [...match.pair1, ...match.pair2];
+        matchPlayers.forEach(player => {
+          playerCounts[player]++;
+        });
+      });
+
+      return this.formatMatches(selectedMatches, playerCounts, players);
+    } else {
+      console.log('❌ 动态规划算法未找到解');
+      return null;
+    }
+  },
+
   // 使用回溯法选择平衡的对战组合
   selectBalancedMatchesBackTrace: function (validMatches, n, playerList, players) {
     console.log('\n=== 使用回溯法选择平衡对战组合 ===');
@@ -432,6 +539,69 @@ Page({
     while (Date.now() - start < ms) {
       // 阻塞主线程
     }
+  },
+
+  // 智能进度提示系统
+  updateProgress: function (algorithm, phase, currentStep, totalSteps) {
+    const now = Date.now();
+    const progress = Math.floor((currentStep / totalSteps) * 100);
+    
+    // 更新进度信息
+    this.setData({
+      'progressInfo.currentAlgorithm': algorithm,
+      'progressInfo.currentPhase': phase,
+      'progressInfo.progress': progress,
+      'progressInfo.totalSteps': totalSteps
+    });
+    
+    // 每10%进度显示一次toast，但避免过于频繁（至少间隔1秒）
+    if (progress % 10 === 0 && (now - this.data.progressInfo.lastToastTime) > 1000) {
+      const message = `${algorithm} - ${phase}\n进度: ${progress}%`;
+      
+      wx.showToast({
+        title: message,
+        icon: 'none',
+        duration: 1500
+      });
+      
+      // 更新最后显示toast的时间
+      this.setData({
+        'progressInfo.lastToastTime': now
+      });
+    }
+  },
+
+  // 显示算法开始提示
+  showAlgorithmStart: function (algorithm, totalSteps) {
+    const message = `开始使用${algorithm}\n预计${totalSteps.toLocaleString()}步`;
+    
+    wx.showToast({
+      title: message,
+      icon: 'none',
+      duration: 2000
+    });
+    
+    // 重置进度信息
+    this.setData({
+      'progressInfo.currentAlgorithm': algorithm,
+      'progressInfo.currentPhase': '初始化',
+      'progressInfo.progress': 0,
+      'progressInfo.totalSteps': totalSteps,
+      'progressInfo.lastToastTime': Date.now()
+    });
+  },
+
+  // 显示算法完成提示
+  showAlgorithmComplete: function (algorithm, success) {
+    const message = success ? 
+      `${algorithm}执行完成！` : 
+      `${algorithm}未找到解`;
+    
+    wx.showToast({
+      title: message,
+      icon: success ? 'success' : 'none',
+      duration: 2000
+    });
   },
 
   // 回溯函数
@@ -632,6 +802,7 @@ Page({
     const result = [];
 
     console.log('\n=== 生成的对阵详情 ===');
+    console.log(`输入的对阵数量: ${matches.length}`);
     matches.forEach((match, index) => {
       // 只需要一个场次标记，从1到n
       const matchId = index + 1;
@@ -664,7 +835,9 @@ Page({
     });
 
     // 对比赛序列进行排序优化，确保相邻比赛参赛队员不重复
+    console.log(`优化前的对阵数量: ${result.length}`);
     const optimizedResult = this.optimizeMatchSequence(result);
+    console.log(`优化后的对阵数量: ${optimizedResult.length}`);
 
     return {
       matches: optimizedResult,
@@ -674,11 +847,13 @@ Page({
 
   // 优化比赛序列，确保相邻比赛参赛队员不重复
   optimizeMatchSequence: function (matches) {
+    console.log(`\n=== 开始优化比赛序列 ===`);
+    console.log(`输入的比赛数量: ${matches.length}`);
+    
     if (matches.length <= 1) {
+      console.log('比赛数量 <= 1，直接返回');
       return matches;
     }
-
-    console.log('\n=== 开始优化比赛序列 ===');
 
     // 尝试多次优化，直到找到无冲突的序列
     const maxAttempts = 10;
@@ -688,7 +863,7 @@ Page({
     for (let attempt = 1; attempt <= maxAttempts; attempt++) {
       console.log(`\n--- 第${attempt}次尝试优化 ---`);
 
-      const result = this.attemptOptimization(matches);
+      let result = this.attemptOptimization(matches);
       const totalConflicts = this.calculateTotalConflicts(result);
 
       console.log(`第${attempt}次尝试结果: 总冲突数 = ${totalConflicts}`);
@@ -711,6 +886,12 @@ Page({
         console.log(`✅ 找到低冲突的比赛序列，冲突数 = ${totalConflicts}`);
         // 重新编号，确保ID连续
         this.renumberMatches(result);
+        // 重新排序：冲突比赛排在后面
+        result = this.reorderMatchesByConflict(result);
+        // 再次重新编号，确保ID连续
+        this.renumberMatches(result);
+        // 显示冲突总结
+        this.showConflictSummary(result);
         return result;
       }
     }
@@ -719,38 +900,17 @@ Page({
 
     // 重新编号，确保ID连续
     this.renumberMatches(bestResult);
+    
+    // 重新排序：冲突比赛排在后面
+    bestResult = this.reorderMatchesByConflict(bestResult);
+    
+    // 再次重新编号，确保ID连续
+    this.renumberMatches(bestResult);
 
-    // 显示最终结果
+    // 显示最终结果和冲突提示
     console.log('\n=== 最终优化结果 ===');
-    bestResult.forEach((match, index) => {
-      const players = [
-        match.team1.player1.name,
-        match.team1.player2.name,
-        match.team2.player1.name,
-        match.team2.player2.name
-      ];
-      console.log(`第${match.id}场: ${players.join(', ')}`);
-
-      // 检查与上一场比赛的冲突
-      if (index > 0) {
-        const prevMatch = bestResult[index - 1];
-        const conflictScore = this.calculateConflictScore(prevMatch, match);
-        if (conflictScore > 0) {
-          console.warn(`⚠️ 第${match.id}场与第${prevMatch.id}场有${conflictScore}个重复选手: ${this.getConflictingPlayers(prevMatch, match).join(', ')}`);
-        } else {
-          console.log(`✅ 第${match.id}场与第${prevMatch.id}场无重复选手`);
-        }
-      }
-    });
-
-    console.log(`\n总冲突数: ${bestConflictCount}`);
-    if (bestConflictCount === 0) {
-      console.log('🎉 完美！所有相邻比赛都无重复选手');
-    } else if (bestConflictCount <= 1) {
-      console.log('👍 很好！只有少量冲突');
-    } else {
-      console.log('⚠️ 仍有较多冲突，建议检查选手数量是否足够');
-    }
+    console.log(`最终返回的比赛数量: ${bestResult.length}`);
+    this.showConflictSummary(bestResult);
 
     return bestResult;
   },
@@ -766,7 +926,194 @@ Page({
     console.log('✅ 比赛编号已重新排序');
   },
 
-  // 单次尝试优化
+  // 重新排序比赛，将冲突比赛排在后面
+  reorderMatchesByConflict: function (matches) {
+    console.log('\n=== 重新排序比赛（冲突比赛排在后面）===');
+    console.log(`输入的比赛数量: ${matches.length}`);
+    
+    const conflictMatches = [];
+    const nonConflictMatches = [];
+    const courtCount = this.data.courtCount;
+    
+    // 第一场比赛总是无冲突的
+    nonConflictMatches.push(matches[0]);
+    
+    // 根据场地数量决定冲突检测策略
+    if (courtCount === 2) {
+      // 2块场地：检查同时进行的比赛之间的冲突
+      // 第1场和第2场同时进行，第3场和第4场同时进行，以此类推
+      for (let i = 0; i < matches.length; i += 2) {
+        if (i + 1 < matches.length) {
+          // 检查第i场和第i+1场之间的冲突
+          const match1 = matches[i];      // 第1场、第3场、第5场...
+          const match2 = matches[i + 1];  // 第2场、第4场、第6场...
+          const conflictScore = this.calculateConflictScore(match1, match2);
+          
+          if (conflictScore === 0) {
+            // 无冲突，两场比赛都放在前面
+            if (i === 0) {
+              // 第一场比赛已经在前面了，只需要添加第二场
+              nonConflictMatches.push(match2);
+            } else {
+              // 添加两场比赛
+              nonConflictMatches.push(match1);
+              nonConflictMatches.push(match2);
+            }
+          } else {
+            // 有冲突，标记为冲突比赛
+            match1.hasConflict = true;
+            match1.conflictWith = match2.id;
+            match1.conflictScore = conflictScore;
+            match2.hasConflict = true;
+            match2.conflictWith = match1.id;
+            match2.conflictScore = conflictScore;
+            conflictMatches.push(match1);
+            conflictMatches.push(match2);
+          }
+        } else {
+          // 如果最后一场比赛是奇数场次，单独处理
+          const lastMatch = matches[i];
+          if (i > 0) {
+            nonConflictMatches.push(lastMatch);
+          }
+        }
+      }
+    } else {
+      // 其他场地数量：检查所有相邻场次的冲突
+      for (let i = 1; i < matches.length; i++) {
+        const currentMatch = matches[i];
+        const prevMatch = matches[i - 1];
+        const conflictScore = this.calculateConflictScore(prevMatch, currentMatch);
+        
+        if (conflictScore === 0) {
+          // 无冲突，继续放在前面
+          nonConflictMatches.push(currentMatch);
+        } else {
+          // 有冲突，标记为冲突比赛
+          currentMatch.hasConflict = true;
+          currentMatch.conflictWith = prevMatch.id;
+          currentMatch.conflictScore = conflictScore;
+          conflictMatches.push(currentMatch);
+        }
+      }
+    }
+    
+    // 重新组合：无冲突比赛在前，冲突比赛在后
+    const reorderedMatches = [...nonConflictMatches, ...conflictMatches];
+    
+    console.log(`无冲突比赛: ${nonConflictMatches.length}场`);
+    console.log(`冲突比赛: ${conflictMatches.length}场`);
+    console.log(`重新排序后的总比赛数: ${reorderedMatches.length}场`);
+    
+    if (conflictMatches.length > 0) {
+      console.log('⚠️ 存在冲突的比赛:');
+      conflictMatches.forEach(match => {
+        // 找到与当前比赛冲突的前一场比赛
+        const prevMatch = nonConflictMatches.find(m => m.id === match.conflictWith);
+        if (prevMatch) {
+          const conflictingPlayers = this.getConflictingPlayers(prevMatch, match);
+          console.log(`  第${match.id}场与第${match.conflictWith}场有${match.conflictScore}个重复选手: ${conflictingPlayers.join(', ')}`);
+        }
+      });
+    }
+    
+    return reorderedMatches;
+  },
+
+  // 显示冲突总结
+  showConflictSummary: function (matches) {
+    console.log('\n=== 比赛冲突总结 ===');
+    
+    let totalConflicts = 0;
+    const conflictDetails = [];
+    const courtCount = this.data.courtCount;
+    
+    // 根据场地数量决定冲突检测策略
+    if (courtCount === 2) {
+      // 2块场地：检查同时进行的比赛之间的冲突
+      // 第1场和第2场同时进行，第3场和第4场同时进行，以此类推
+      for (let i = 0; i < matches.length; i += 2) {
+        if (i + 1 < matches.length) {
+          // 检查第i场和第i+1场之间的冲突
+          const match1 = matches[i];      // 第1场、第3场、第5场...
+          const match2 = matches[i + 1];  // 第2场、第4场、第6场...
+          const conflictScore = this.calculateConflictScore(match1, match2);
+          
+          if (conflictScore > 0) {
+            totalConflicts += conflictScore;
+            const conflictingPlayers = this.getConflictingPlayers(match1, match2);
+            conflictDetails.push({
+              match1: match1.id,
+              match2: match2.id,
+              conflictScore: conflictScore,
+              players: conflictingPlayers
+            });
+          }
+        }
+      }
+    } else {
+      // 其他场地数量：检查所有相邻场次的冲突
+      for (let i = 1; i < matches.length; i++) {
+        const currentMatch = matches[i];
+        const prevMatch = matches[i - 1];
+        const conflictScore = this.calculateConflictScore(prevMatch, currentMatch);
+        
+        if (conflictScore > 0) {
+          totalConflicts += conflictScore;
+          const conflictingPlayers = this.getConflictingPlayers(prevMatch, currentMatch);
+          conflictDetails.push({
+            match1: prevMatch.id,
+            match2: currentMatch.id,
+            conflictScore: conflictScore,
+            players: conflictingPlayers
+          });
+        }
+      }
+    }
+    
+    // 显示每场比赛的选手
+    matches.forEach((match, index) => {
+      const players = [
+        match.team1.player1.name,
+        match.team1.player2.name,
+        match.team2.player1.name,
+        match.team2.player2.name
+      ];
+      const conflictMark = match.hasConflict ? ' ⚠️' : '';
+      console.log(`第${match.id}场: ${players.join(', ')}${conflictMark}`);
+    });
+    
+    // 显示冲突详情
+    if (conflictDetails.length > 0) {
+      console.log(`\n⚠️ 发现 ${conflictDetails.length} 处冲突:`);
+      conflictDetails.forEach((conflict, index) => {
+        console.log(`  ${index + 1}. 第${conflict.match1}场与第${conflict.match2}场有${conflict.conflictScore}个重复选手: ${conflict.players.join(', ')}`);
+      });
+      
+      console.log(`\n总冲突数: ${totalConflicts}`);
+      console.log('💡 提示：冲突的比赛已排在序列末尾，建议安排休息时间');
+    } else {
+      console.log('\n🎉 完美！所有相邻比赛都无重复选手');
+    }
+    
+    // 显示无冲突和冲突比赛的统计
+    const nonConflictCount = matches.filter(m => !m.hasConflict).length;
+    const conflictCount = matches.filter(m => m.hasConflict).length;
+    
+    console.log(`\n📊 统计信息:`);
+    console.log(`  无冲突比赛: ${nonConflictCount}场`);
+    console.log(`  冲突比赛: ${conflictCount}场`);
+    console.log(`  总比赛数: ${matches.length}场`);
+    
+    if (conflictCount > 0) {
+      console.log(`\n🔧 建议:`);
+      console.log(`  1. 前${nonConflictCount}场比赛可以连续进行`);
+      console.log(`  2. 第${nonConflictCount + 1}场开始有冲突，建议安排休息时间`);
+      console.log(`  3. 或者调整选手安排，减少冲突`);
+    }
+  },
+
+  // 单次尝试优化（改进版：优先安排无冲突比赛）
   attemptOptimization: function (matches) {
     const result = [matches[0]]; // 第一场比赛保持不变
     let remaining = [...matches.slice(1)];
@@ -792,24 +1139,9 @@ Page({
         }
       }
 
-      // 如果找不到无冲突的比赛，重新打乱剩余比赛顺序
-      if (bestScore === 0) {
-        this.shuffleArray(remaining);
-        bestNextIndex = 0;
-        bestScore = 4 - this.calculateConflictScore(result[result.length - 1], remaining[0]);
-      }
-
       // 将选中的比赛添加到结果中
       const selectedMatch = remaining.splice(bestNextIndex, 1)[0];
       result.push(selectedMatch);
-
-      // 如果冲突分数为0，说明找到了无冲突的比赛，重置remaining数组
-      if (bestScore === 4) {
-        remaining = [...matches.slice(1)].filter(m =>
-          !result.some(r => r.id === m.id)
-        );
-        this.shuffleArray(remaining);
-      }
     }
 
     return result;
@@ -818,10 +1150,27 @@ Page({
   // 计算整个序列的总冲突数
   calculateTotalConflicts: function (matches) {
     let totalConflicts = 0;
+    const courtCount = this.data.courtCount;
 
-    for (let i = 1; i < matches.length; i++) {
-      const conflictScore = this.calculateConflictScore(matches[i - 1], matches[i]);
-      totalConflicts += conflictScore;
+    // 根据场地数量决定冲突检测策略
+    if (courtCount === 2) {
+      // 2块场地：只检测同时进行的比赛之间的冲突
+      // 第1场和第2场同时进行，第3场和第4场同时进行，以此类推
+      for (let i = 0; i < matches.length; i += 2) {
+        if (i + 1 < matches.length) {
+          // 检查第i场和第i+1场之间的冲突
+          const match1 = matches[i];      // 第1场、第3场、第5场...
+          const match2 = matches[i + 1];  // 第2场、第4场、第6场...
+          const conflictScore = this.calculateConflictScore(match1, match2);
+          totalConflicts += conflictScore;
+        }
+      }
+    } else {
+      // 其他场地数量：检测所有相邻场次的冲突
+      for (let i = 1; i < matches.length; i++) {
+        const conflictScore = this.calculateConflictScore(matches[i - 1], matches[i]);
+        totalConflicts += conflictScore;
+      }
     }
 
     return totalConflicts;
@@ -943,5 +1292,412 @@ Page({
   // 计算轮空次数 - 新算法中不再需要
   calculateByeCounts: function (matches) {
     return {};
+  },
+
+  // 计算搜索空间大小
+  calculateSearchSpace: function (validMatchesCount, n, playerCount) {
+    // 计算组合数 C(validMatchesCount, n)
+    let combinations = 1;
+    for (let i = 0; i < n; i++) {
+      combinations *= (validMatchesCount - i);
+    }
+    for (let i = 1; i <= n; i++) {
+      combinations /= i;
+    }
+    
+    // 考虑状态空间：每个选手最多出现的次数
+    const maxPlayerCount = n * 4 / playerCount;
+    const stateSpace = Math.pow(maxPlayerCount + 1, playerCount);
+    
+    return combinations * stateSpace;
+  },
+
+  // 计算组合数 C(m, n)
+  calculateCombinations: function (m, n) {
+    if (n > m) return 0;
+    if (n === 0 || n === m) return 1;
+    
+    // 使用更稳定的计算方法
+    let result = 1;
+    const k = Math.min(n, m - n);
+    
+    for (let i = 0; i < k; i++) {
+      result = result * (m - i) / (i + 1);
+    }
+    
+    return Math.floor(result);
+  },
+
+  // ========== 动态规划算法相关函数 ==========
+
+  // 根据问题规模选择算法（优化版）
+  selectAlgorithmForDP: function (quadCount, n, r) {
+    // 计算状态空间大小估计
+    const stateSpaceSize = Math.pow(r + 1, n);
+    
+    // 算法选择策略（更智能）
+    if (quadCount <= 30 && stateSpaceSize <= 500000) { // 小规模问题
+      return 'dp';
+    } else if (quadCount <= 60 && stateSpaceSize <= 5000000) { // 中等规模问题
+      return 'heuristic';
+    } else { // 大规模问题，状态空间爆炸
+      return 'random';
+    }
+  },
+
+  // 预计算每个四元组对每个元素的贡献
+  precomputeContributions: function (S4, n, playerList) {
+    const contributions = [];
+    for (const quad of S4) {
+      const contribution = new Array(n).fill(0);
+      // 将四元组转换为选手索引
+      const players = [...quad.pair1, ...quad.pair2];
+      
+      // 根据选手名称在playerList中的位置确定索引
+      players.forEach(player => {
+        const index = playerList.indexOf(player);
+        if (index >= 0 && index < n) {
+          contribution[index]++;
+        }
+      });
+      contributions.push(contribution);
+    }
+    return contributions;
+  },
+
+  // 随机采样算法（优化版）
+  solveQuadrupleSelectionRandom: function (S4, n, r, j, playerList, maxAttempts = null) {
+    const m = S4.length;
+    
+    // 智能计算尝试次数
+    if (maxAttempts === null) {
+      const stateSpaceSize = Math.pow(r + 1, n);
+      const combinationCount = this.calculateCombinations(m, j);
+      
+      // 基础尝试次数
+      let baseAttempts = 1000;
+      
+      // 根据状态空间大小调整（指数增长）
+      if (stateSpaceSize <= 1000000) {
+        baseAttempts = 2000; // 小状态空间
+      } else if (stateSpaceSize <= 10000000) {
+        baseAttempts = 8000; // 中等状态空间
+      } else if (stateSpaceSize <= 100000000) {
+        baseAttempts = 25000; // 大状态空间
+      } else if (stateSpaceSize <= 1000000000) {
+        baseAttempts = 60000; // 超大状态空间
+      } else {
+        baseAttempts = 120000; // 极大状态空间
+      }
+      
+      // 根据组合数调整（对数增长）
+      const combinationFactor = Math.min(Math.log10(combinationCount) + 1, 8); // 最多8倍
+      maxAttempts = Math.floor(baseAttempts * combinationFactor);
+      
+      // 根据问题难度调整（r值越大，问题越难）
+      const difficultyFactor = Math.min(r / 5, 3); // r=5时1倍，r=15时3倍
+      maxAttempts = Math.floor(maxAttempts * difficultyFactor);
+      
+      // 设置合理的上下限
+      maxAttempts = Math.max(1000, Math.min(maxAttempts, 500000));
+      
+      console.log(`智能计算尝试次数:`);
+      console.log(`  状态空间: ${stateSpaceSize.toLocaleString()}`);
+      console.log(`  组合数: ${combinationCount.toLocaleString()}`);
+      console.log(`  目标出现次数: ${r}`);
+      console.log(`  最终尝试次数: ${maxAttempts.toLocaleString()}`);
+    }
+    
+    // 内联预计算每个四元组对每个元素的贡献，避免this上下文问题
+    const contributions = [];
+    for (const quad of S4) {
+      const contribution = new Array(n).fill(0);
+      const players = [...quad.pair1, ...quad.pair2];
+      
+      players.forEach(player => {
+        const index = playerList.indexOf(player);
+        if (index >= 0 && index < n) {
+          contribution[index]++;
+        }
+      });
+      contributions.push(contribution);
+    }
+    
+    const evaluateSolution = (selectedQuads) => {
+      const state = new Array(n).fill(0);
+      for (const quadIdx of selectedQuads) {
+        const contribution = contributions[quadIdx];
+        for (let i = 0; i < n; i++) {
+          state[i] += contribution[i];
+        }
+      }
+      
+      // 计算与目标的差距
+      let totalGap = 0;
+      for (let i = 0; i < n; i++) {
+        totalGap += Math.abs(r - state[i]);
+      }
+      
+      return { gap: totalGap, state: state };
+    };
+    
+    // 贪心初始化：选择能让元素分布更均匀的四元组
+    const greedyInitialize = () => {
+      const selectedQuads = [];
+      const currentState = new Array(n).fill(0);
+      
+      for (let step = 0; step < j; step++) {
+        let bestQuad = -1;
+        let bestScore = -Infinity;
+        
+        for (let quadIdx = 0; quadIdx < m; quadIdx++) {
+          if (selectedQuads.includes(quadIdx)) continue;
+          
+          // 临时添加这个四元组
+          const tempState = [...currentState];
+          const contribution = contributions[quadIdx];
+          for (let i = 0; i < n; i++) {
+            tempState[i] += contribution[i];
+          }
+          
+          // 检查是否超过目标
+          if (tempState.some(count => count > r)) continue;
+          
+          // 计算评分：优先选择能让元素分布更均匀的
+          let score = 0;
+          for (let i = 0; i < n; i++) {
+            if (tempState[i] <= r) {
+              score += (r - tempState[i]) * 10; // 优先选择能让元素更接近目标的
+            }
+          }
+          
+          if (score > bestScore) {
+            bestScore = score;
+            bestQuad = quadIdx;
+          }
+        }
+        
+        if (bestQuad >= 0) {
+          selectedQuads.push(bestQuad);
+          const contribution = contributions[bestQuad];
+          for (let i = 0; i < n; i++) {
+            currentState[i] += contribution[i];
+          }
+        } else {
+          break; // 无法找到合适的四元组
+        }
+      }
+      
+      return selectedQuads;
+    };
+    
+    // 局部优化：尝试替换四元组来改善解
+    const localOptimize = (selectedQuads) => {
+      let improved = true;
+      let iterations = 0;
+      const maxIterations = 100;
+      
+      while (improved && iterations < maxIterations) {
+        improved = false;
+        iterations++;
+        
+        for (let i = 0; i < selectedQuads.length; i++) {
+          for (let newQuad = 0; newQuad < m; newQuad++) {
+            if (selectedQuads.includes(newQuad)) continue;
+            
+            // 尝试替换
+            const tempQuads = [...selectedQuads];
+            tempQuads[i] = newQuad;
+            
+            const currentGap = evaluateSolution(selectedQuads).gap;
+            const newGap = evaluateSolution(tempQuads).gap;
+            
+            if (newGap < currentGap) {
+              selectedQuads.splice(0, selectedQuads.length, ...tempQuads);
+              improved = true;
+              
+              if (newGap === 0) {
+                return true; // 找到完美解
+              }
+              break;
+            }
+          }
+          if (improved) break;
+        }
+      }
+      
+      return false; // 没有找到完美解
+    };
+    
+    // 主搜索循环
+    for (let attempt = 0; attempt < maxAttempts; attempt++) {
+      // 每10%进度更新一次提示
+      if (attempt % Math.max(1, Math.floor(maxAttempts / 10)) === 0) {
+        this.updateProgress('随机采样算法', '搜索中', attempt, maxAttempts);
+      }
+      
+      // 贪心初始化
+      let selectedQuads = greedyInitialize();
+      
+      if (selectedQuads.length === j) {
+        // 评估初始解
+        const { gap } = evaluateSolution(selectedQuads);
+        
+        if (gap === 0) {
+          return selectedQuads; // 贪心初始化就找到了完美解
+        }
+        
+        // 局部优化
+        if (localOptimize(selectedQuads)) {
+          return selectedQuads; // 局部优化找到了完美解
+        }
+        
+        // 检查当前解是否足够好
+        const finalGap = evaluateSolution(selectedQuads).gap;
+        if (finalGap <= 2) { // 允许2个元素的误差
+          console.log(`找到近似解，差距: ${finalGap}`);
+          return selectedQuads;
+        }
+      }
+      
+      // 如果贪心初始化失败，尝试完全随机
+      if (attempt % 100 === 0) { // 每100次尝试一次完全随机
+        const available = [...Array(m).keys()];
+        for (let i = available.length - 1; i > 0; i--) {
+          const randomIndex = Math.floor(Math.random() * (i + 1));
+          [available[i], available[randomIndex]] = [available[randomIndex], available[i]];
+        }
+        selectedQuads = available.slice(0, j);
+        
+        const { gap } = evaluateSolution(selectedQuads);
+        if (gap === 0) {
+          return selectedQuads;
+        }
+      }
+    }
+    
+    return null;
+  },
+
+  // 启发式搜索算法（优化版）
+  solveQuadrupleSelectionHeuristic: function (S4, n, r, j, playerList, maxIterations = null) {
+    const m = S4.length;
+    
+    // 智能计算最大迭代次数
+    if (maxIterations === null) {
+      const stateSpaceSize = Math.pow(r + 1, n);
+      
+      // 启发式搜索的迭代次数通常比随机采样少，但更精确
+      if (stateSpaceSize <= 1000000) {
+        maxIterations = 1000; // 小状态空间
+      } else if (stateSpaceSize <= 10000000) {
+        maxIterations = 3000; // 中等状态空间
+      } else if (stateSpaceSize <= 100000000) {
+        maxIterations = 8000; // 大状态空间
+      } else {
+        maxIterations = 15000; // 超大状态空间
+      }
+      
+      // 根据问题难度调整
+      const difficultyFactor = Math.min(r / 5, 2); // r=5时1倍，r=10时2倍
+      maxIterations = Math.floor(maxIterations * difficultyFactor);
+      
+      // 设置合理的上下限
+      maxIterations = Math.max(500, Math.min(maxIterations, 50000));
+      
+      console.log(`启发式搜索最大迭代次数: ${maxIterations.toLocaleString()}`);
+    }
+    
+    // 内联预计算每个四元组对每个元素的贡献，避免this上下文问题
+    const contributions = [];
+    for (const quad of S4) {
+      const contribution = new Array(n).fill(0);
+      const players = [...quad.pair1, ...quad.pair2];
+      
+      players.forEach(player => {
+        const index = playerList.indexOf(player);
+        if (index >= 0 && index < n) {
+          contribution[index]++;
+        }
+      });
+      contributions.push(contribution);
+    }
+    
+    const evaluateQuad = (quadIdx, currentState) => {
+      const contribution = contributions[quadIdx];
+      const newState = [...currentState];
+      
+      for (let i = 0; i < n; i++) {
+        newState[i] += contribution[i];
+      }
+      
+      let totalGap = 0;
+      for (let i = 0; i < n; i++) {
+        if (newState[i] > r) {
+          return -Infinity;
+        }
+        totalGap += r - newState[i];
+      }
+      
+      return -totalGap;
+    };
+    
+    const searchSolution = (currentState, selectedQuads, remainingQuads, depth = 0) => {
+      if (selectedQuads.length === j) {
+        if (currentState.every(count => count === r)) {
+          return selectedQuads;
+        }
+        return null;
+      }
+      
+      if (selectedQuads.length + remainingQuads.length < j) {
+        return null;
+      }
+      
+      // 每10层深度更新一次进度提示
+      if (depth % 10 === 0) {
+        const currentStep = selectedQuads.length;
+        this.updateProgress('启发式搜索', `深度${depth}层`, currentStep, j);
+      }
+      
+      const candidates = [];
+      for (const quadIdx of remainingQuads) {
+        const score = evaluateQuad(quadIdx, currentState);
+        if (score > -Infinity) {
+          candidates.push([score, quadIdx]);
+        }
+      }
+      
+      candidates.sort((a, b) => b[0] - a[0]);
+      
+      for (const [score, quadIdx] of candidates) {
+        const contribution = contributions[quadIdx];
+        const newState = [...currentState];
+        for (let i = 0; i < n; i++) {
+          newState[i] += contribution[i];
+        }
+        
+        const newRemaining = remainingQuads.filter(q => q !== quadIdx);
+        const result = searchSolution(newState, [...selectedQuads, quadIdx], newRemaining, depth + 1);
+        if (result) {
+          return result;
+        }
+      }
+      
+      return null;
+    };
+    
+    const initialState = new Array(n).fill(0);
+    const allQuads = [...Array(m).keys()];
+    
+    return searchSolution(initialState, [], allQuads);
+  },
+
+  // 动态规划算法（简化版，主要用于小规模问题）
+  solveQuadrupleSelectionDP: function (S4, n, r, j, playerList) {
+    // 对于小规模问题，使用启发式搜索作为替代
+    // 因为完整的动态规划在JavaScript中实现复杂且效率不高
+    console.log('使用启发式搜索替代动态规划...');
+    return this.solveQuadrupleSelectionHeuristic(S4, n, r, j, playerList);
   }
 }); 

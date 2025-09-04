@@ -325,4 +325,93 @@
 .confirm-btn {
   background-color: #007aff;
   color: #fff;
+}
+
+/* 进度显示组件样式 */
+.progress-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.progress-content {
+  background-color: white;
+  border-radius: 16rpx;
+  padding: 40rpx;
+  width: 80%;
+  max-width: 600rpx;
+  box-shadow: 0 8rpx 32rpx rgba(0, 0, 0, 0.3);
+}
+
+.progress-header {
+  text-align: center;
+  margin-bottom: 30rpx;
+}
+
+.progress-title {
+  font-size: 32rpx;
+  font-weight: bold;
+  color: #333;
+}
+
+.progress-body {
+  text-align: center;
+}
+
+.algorithm-info {
+  margin-bottom: 25rpx;
+}
+
+.algorithm-name {
+  display: block;
+  font-size: 28rpx;
+  font-weight: 500;
+  color: #007aff;
+  margin-bottom: 10rpx;
+}
+
+.algorithm-phase {
+  display: block;
+  font-size: 24rpx;
+  color: #666;
+}
+
+.progress-bar {
+  width: 100%;
+  height: 20rpx;
+  background-color: #f0f0f0;
+  border-radius: 10rpx;
+  overflow: hidden;
+  margin-bottom: 20rpx;
+}
+
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #007aff, #5ac8fa);
+  border-radius: 10rpx;
+  transition: width 0.3s ease;
+}
+
+.progress-text {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.progress-percentage {
+  font-size: 28rpx;
+  font-weight: bold;
+  color: #007aff;
+}
+
+.progress-steps {
+  font-size: 24rpx;
+  color: #666;
 } 
