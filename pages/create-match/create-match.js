@@ -1039,56 +1039,32 @@ Page({
   // 显示冲突总结
   showConflictSummary: function (matches) {
     console.log('\n=== 比赛冲突总结 ===');
-    
+
+    const courtCount = this.data.courtCount;
     let totalConflicts = 0;
     const conflictDetails = [];
-    const courtCount = this.data.courtCount;
-    
-    // 根据场地数量决定冲突检测策略
-    if (courtCount === 2) {
-      // 2块场地：检查同时进行的比赛之间的冲突
-      // 第1场和第2场同时进行，第3场和第4场同时进行，以此类推
-      for (let i = 0; i < matches.length; i += 2) {
-        if (i + 1 < matches.length) {
-          // 检查第i场和第i+1场之间的冲突
-          const match1 = matches[i];      // 第1场、第3场、第5场...
-          const match2 = matches[i + 1];  // 第2场、第4场、第6场...
-          const conflictScore = this.calculateConflictScore(match1, match2);
-          
+
+    for (let i = 0; i < matches.length; i += courtCount) {
+      const batch = matches.slice(i, i + courtCount);
+      for (let a = 0; a < batch.length; a++) {
+        for (let b = a + 1; b < batch.length; b++) {
+          const conflictScore = this.calculateConflictScore(batch[a], batch[b]);
           if (conflictScore > 0) {
             totalConflicts += conflictScore;
-            const conflictingPlayers = this.getConflictingPlayers(match1, match2);
+            const conflictingPlayers = this.getConflictingPlayers(batch[a], batch[b]);
             conflictDetails.push({
-              match1: match1.id,
-              match2: match2.id,
+              match1: batch[a].id,
+              match2: batch[b].id,
               conflictScore: conflictScore,
               players: conflictingPlayers
             });
           }
         }
       }
-    } else {
-      // 其他场地数量：检查所有相邻场次的冲突
-      for (let i = 1; i < matches.length; i++) {
-        const currentMatch = matches[i];
-        const prevMatch = matches[i - 1];
-        const conflictScore = this.calculateConflictScore(prevMatch, currentMatch);
-        
-        if (conflictScore > 0) {
-          totalConflicts += conflictScore;
-          const conflictingPlayers = this.getConflictingPlayers(prevMatch, currentMatch);
-          conflictDetails.push({
-            match1: prevMatch.id,
-            match2: currentMatch.id,
-            conflictScore: conflictScore,
-            players: conflictingPlayers
-          });
-        }
-      }
     }
-    
+
     // 显示每场比赛的选手
-    matches.forEach((match, index) => {
+    matches.forEach((match) => {
       const players = [
         match.team1.player1.name,
         match.team1.player2.name,
@@ -1098,34 +1074,30 @@ Page({
       const conflictMark = match.hasConflict ? ' ⚠️' : '';
       console.log(`第${match.id}场: ${players.join(', ')}${conflictMark}`);
     });
-    
-    // 显示冲突详情
+
     if (conflictDetails.length > 0) {
       console.log(`\n⚠️ 发现 ${conflictDetails.length} 处冲突:`);
       conflictDetails.forEach((conflict, index) => {
         console.log(`  ${index + 1}. 第${conflict.match1}场与第${conflict.match2}场有${conflict.conflictScore}个重复选手: ${conflict.players.join(', ')}`);
       });
-      
       console.log(`\n总冲突数: ${totalConflicts}`);
       console.log('💡 提示：冲突的比赛已排在序列末尾，建议安排休息时间');
     } else {
-      console.log('\n🎉 完美！所有相邻比赛都无重复选手');
+      console.log('\n🎉 完美！所有同时进行的比赛都无重复选手');
     }
-    
-    // 显示无冲突和冲突比赛的统计
+
     const nonConflictCount = matches.filter(m => !m.hasConflict).length;
     const conflictCount = matches.filter(m => m.hasConflict).length;
-    
+
     console.log(`\n📊 统计信息:`);
     console.log(`  无冲突比赛: ${nonConflictCount}场`);
     console.log(`  冲突比赛: ${conflictCount}场`);
     console.log(`  总比赛数: ${matches.length}场`);
-    
+
     if (conflictCount > 0) {
       console.log(`\n🔧 建议:`);
       console.log(`  1. 前${nonConflictCount}场比赛可以连续进行`);
       console.log(`  2. 第${nonConflictCount + 1}场开始有冲突，建议安排休息时间`);
-      console.log(`  3. 或者调整选手安排，减少冲突`);
     }
   },
 
