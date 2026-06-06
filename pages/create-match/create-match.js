@@ -44,7 +44,7 @@ Page({
 
   // 设置最大参赛人数
   onMaxPlayersChange: function (e) {
-    console.log('设置最大参赛人数:', e.detail.value);
+    console.log('设置参赛人数:', e.detail.value);
     const newMaxPlayers = parseInt(e.detail.value) + 1;
     this.setData({
       maxPlayers: newMaxPlayers
@@ -100,18 +100,12 @@ Page({
   showConfirmDialog: function () {
     console.log('显示确认对话框');
     if (!this.data.matchName || !this.data.matchName.trim()) {
-      wx.showToast({
-        title: '请输入比赛名称',
-        icon: 'none'
-      });
+      this.showTips('请输入比赛名称');
       return;
     }
 
     if (this.data.players.length < 2) {
-      wx.showToast({
-        title: '至少需要2名参赛选手',
-        icon: 'none'
-      });
+      this.showTips('至少需要2名参赛选手');
       return;
     }
 
@@ -184,7 +178,9 @@ Page({
       });
 
       // 生成对阵
-      const generatedMatches = this.generateMatches();
+      const generatedMatches = this.data.matchType === "单打"
+        ? this.generateSinglesMatches()
+        : this.generateDoublesMatches();
       console.log('生成的对阵:', generatedMatches);
 
       // 创建比赛对象
@@ -224,10 +220,7 @@ Page({
 
       console.log('比赛保存成功:', match);
 
-      wx.showToast({
-        title: '比赛创建成功',
-        icon: 'success'
-      });
+      this.showTips('比赛创建成功');
 
       // 重置表单和隐藏确认框
       this.setData({
@@ -242,23 +235,37 @@ Page({
       });
     } catch (error) {
       console.error('创建比赛失败:', error);
-      wx.showToast({
-        title: error.message || '创建比赛失败，请重试',
-        icon: 'none'
-      });
+      this.showTips(error.message || '创建比赛失败，请重试');
     }
   },
 
-  // 生成对阵算法
-  generateMatches: function () {
+  showTips: function(title, icon='none', duration=1000) {
+    wx.showToast({
+      title: title,
+      icon: icon,
+      duration: duration
+    });
+    console.log(title);
+  },
+
+  // 生成单打对阵算法
+  generateSinglesMatches: function () {},
+
+  // 生成双打对阵算法
+  generateDoublesMatches: function () {
     const players = this.data.players;
     const numPlayers = players.length;
     const numMatches = this.data.selectedRounds;
     const levelGap = this.data.levelGap;
 
-    console.log('开始生成对阵:', { players, numPlayers, numMatches, levelGap });
+    this.showTips('开始生成对阵:');
+    console.log('players:', { players });
+    console.log('numPlayers:', { numPlayers });
+    console.log('numMatches:', { numMatches });
+    console.log('levelGap:', { levelGap });
 
     if (numPlayers < 4) {
+      this.showTips('至少需要4名选手才能生成对阵');
       throw new Error('至少需要4名选手才能生成对阵');
     }
 
@@ -270,51 +277,48 @@ Page({
 
     // 输入验证
     if (!playersObj || Object.keys(playersObj).length === 0) {
+      this.showTips('选手信息不能为空');
       throw new Error('选手信息不能为空');
     }
     if (numMatches <= 0) {
+      this.showTips('对阵场数必须大于0');
       throw new Error('对阵场数必须大于0');
     }
     if (levelGap < 0) {
+      this.showTips('等级差不能为负数');
       throw new Error('等级差不能为负数');
     }
 
     const playerList = Object.keys(playersObj);
+    const pairs = this.generatePlayerPairs(playerList);
+    const validMatches = this.generateValidMatches(pairs, playersObj, levelGap);
+    return this.selectMatchesByStrategy(validMatches, numMatches, playerList, playersObj);
+  },
 
-    console.log('=== 开始生成对阵 ===');
-    console.log(`选手数量: ${numPlayers}`);
-    console.log(`对阵场数: ${numMatches}`);
-    console.log(`等级差限制: ${levelGap}`);
-
-    // Step 1: 生成所有可能的2人组合
+  // 生成所有可能的2人组合
+  generatePlayerPairs: function (playerList) {
     const pairs = this.generateCombinations(playerList, 2);
-    console.log(`生成${pairs.length}个2人组合`);
+    this.showTips(`生成${pairs.length}个2人组合`);
+    return pairs;
+  },
 
-    // Step 2: 生成所有可能的4人对战组合
+  // 生成所有可能的4人对战组合（满足等级差限制）
+  generateValidMatches: function (pairs, playersObj, levelGap) {
     const validMatches = [];
     for (let i = 0; i < pairs.length; i++) {
       for (let j = i + 1; j < pairs.length; j++) {
         const pair1 = pairs[i];
         const pair2 = pairs[j];
 
-        // 确保4个不重复的选手
         const allPlayers = new Set([...pair1, ...pair2]);
-        if (allPlayers.size === 4) {
-          // 计算两组的等级之和
-          const level1 = playersObj[pair1[0]] + playersObj[pair1[1]];
-          const level2 = playersObj[pair2[0]] + playersObj[pair2[1]];
-          const levelDiff = Math.abs(level1 - level2);
+        if (allPlayers.size !== 4) continue;
 
-          // 检查等级差是否满足要求
-          if (levelDiff <= levelGap) {
-            validMatches.push({
-              pair1: pair1,
-              pair2: pair2,
-              level1: level1,
-              level2: level2,
-              levelDiff: levelDiff
-            });
-          }
+        const level1 = playersObj[pair1[0]] + playersObj[pair1[1]];
+        const level2 = playersObj[pair2[0]] + playersObj[pair2[1]];
+        const levelDiff = Math.abs(level1 - level2);
+
+        if (levelDiff <= levelGap) {
+          validMatches.push({ pair1, pair2, level1, level2, levelDiff });
         }
       }
     }
@@ -325,17 +329,14 @@ Page({
       throw new Error(`没有找到满足等级差限制(${levelGap})的对战组合`);
     }
 
-    // Step 3: 从有效组合中选择n组，确保每个人出场次数相等
+    return validMatches;
+  },
+
+  // 从有效组合中选择n组，确保每个人出场次数相等
+  selectMatchesByStrategy: function (validMatches, numMatches, playerList, playersObj) {
     console.log('\n=== 开始执行策略链生成对阵 ===');
 
-    // 定义策略链
     const strategies = [
-
-      {
-        name: '动态规划算法',
-        method: 'selectBalancedMatchesDP',
-        toast: '动态规划算法未找到最优解，使用备选方案'
-      },
       {
         name: '回溯法',
         method: 'selectBalancedMatchesBackTrace',
@@ -348,19 +349,10 @@ Page({
       }
     ];
 
-    // 执行策略链
     for (let i = 0; i < strategies.length; i++) {
       const strategy = strategies[i];
       console.log(`\n=== 尝试策略${i + 1}: ${strategy.name} ===`);
-
-      // 显示策略开始提示
-      wx.showToast({
-        title: `开始执行: ${strategy.name}`,
-        icon: 'none',
-        duration: 1500
-      });
-
-      // 等待toast显示完成
+      this.showTips(`开始执行: ${strategy.name}`, 'none', 1500);
       this.sleep(200);
 
       try {
@@ -371,131 +363,22 @@ Page({
           return result;
         }
 
-        // 策略失败，显示提示并继续下一个策略
-        if (i < strategies.length - 1) { // 不是最后一个策略
+        if (i < strategies.length - 1) {
           console.log(`❌ ${strategy.name}失败，尝试下一个策略`);
-          wx.showToast({
-            title: strategy.toast,
-            icon: 'none',
-            duration: 1000
-          });
-
-          // 等待toast显示完成
+          this.showTips(strategy.toast, 'none', 1000);
           this.sleep(1000);
         }
-
       } catch (error) {
         console.error(`${strategy.name}执行出错:`, error);
 
-        // 策略出错，显示提示并继续下一个策略
-        if (i < strategies.length - 1) { // 不是最后一个策略
-          wx.showToast({
-            title: strategy.toast,
-            icon: 'none',
-            duration: 1000
-          });
-
-          // 等待toast显示完成
+        if (i < strategies.length - 1) {
+          this.showTips(strategy.toast, 'none', 1000);
           this.sleep(1000);
         }
       }
     }
 
-    // 所有策略都失败了
     throw new Error('所有对阵生成策略都失败了');
-  },
-
-
-  // 使用动态规划算法选择平衡的对战组合
-  selectBalancedMatchesDP: function (validMatches, n, playerList, players) {
-    console.log('\n=== 使用动态规划算法选择平衡对战组合 ===');
-
-    // 计算每个选手应该的出场次数
-    const targetCount = (n * 4) / playerList.length;
-    console.log(`目标：每个选手出场${targetCount}次`);
-
-    // 参数映射：
-    // validMatches -> S4 (四元组列表)
-    // playerList.length -> n (元素个数)
-    // n -> j (目标四元组个数)
-    // targetCount -> r (每个数字的目标出现次数)
-
-    const S4 = validMatches;
-    const n_elements = playerList.length;
-    const j = n;
-    const r = targetCount;
-
-    console.log(`问题规模分析:`);
-    console.log(`  四元组数量: ${S4.length}`);
-    console.log(`  元素个数: ${n_elements}`);
-    console.log(`  目标出现次数: ${r}`);
-    console.log(`  目标四元组个数: ${j}`);
-    console.log(`  估计状态空间大小: ${Math.pow(r + 1, n_elements).toLocaleString()}`);
-
-    // 根据问题规模选择算法
-    const algorithmType = this.selectAlgorithmForDP(S4.length, n_elements, r);
-    console.log(`  推荐算法: ${algorithmType}`);
-
-    let solution;
-    if (algorithmType === 'dp') {
-      console.log('使用动态规划+剪枝算法...');
-      this.showAlgorithmStart('动态规划+剪枝算法', Math.pow(r + 1, n_elements));
-      solution = this.solveQuadrupleSelectionDP(S4, n_elements, r, j, playerList);
-      this.showAlgorithmComplete('动态规划+剪枝算法', !!solution);
-    } else if (algorithmType === 'heuristic') {
-      console.log('使用启发式搜索算法...');
-      this.showAlgorithmStart('启发式搜索算法', Math.min(8000, Math.pow(r + 1, n_elements)));
-      solution = this.solveQuadrupleSelectionHeuristic(S4, n_elements, r, j, playerList);
-      this.showAlgorithmComplete('启发式搜索算法', !!solution);
-    } else {
-      console.log('使用随机采样算法...');
-      // 计算随机采样的尝试次数
-      const stateSpaceSize = Math.pow(r + 1, n_elements);
-      const combinationCount = this.calculateCombinations(S4.length, j);
-      if (combinationCount > 1000000) { // 超过100万种组合
-        console.log(`⚠️ 搜索空间过大(${combinationCount.toExponential(2)})，跳过回溯法`);
-        return null;
-      }
-      let baseAttempts = 2000;
-      if (stateSpaceSize > 100000000) baseAttempts = 60000;
-      const totalAttempts = Math.min(baseAttempts * Math.min(Math.log10(combinationCount) + 1, 8) * Math.min(r / 5, 3), 500000);
-      
-      this.showAlgorithmStart('随机采样算法', totalAttempts);
-      solution = this.solveQuadrupleSelectionRandom(S4, n_elements, r, j, playerList);
-      this.showAlgorithmComplete('随机采样算法', !!solution);
-      
-      // 如果随机采样失败，尝试启发式搜索作为备选
-      if (!solution) {
-        console.log('随机采样失败，尝试启发式搜索作为备选...');
-        this.showAlgorithmStart('启发式搜索算法(备选)', Math.min(8000, Math.pow(r + 1, n_elements)));
-        solution = this.solveQuadrupleSelectionHeuristic(S4, n_elements, r, j, playerList);
-        this.showAlgorithmComplete('启发式搜索算法(备选)', !!solution);
-      }
-    }
-
-    if (solution) {
-      console.log('✅ 动态规划算法成功找到解！');
-      // 将索引转换为实际的对战组合
-      const selectedMatches = solution.map(idx => validMatches[idx]);
-      
-      // 计算选手出场次数
-      const playerCounts = {};
-      playerList.forEach(player => {
-        playerCounts[player] = 0;
-      });
-
-      selectedMatches.forEach(match => {
-        const matchPlayers = [...match.pair1, ...match.pair2];
-        matchPlayers.forEach(player => {
-          playerCounts[player]++;
-        });
-      });
-
-      return this.formatMatches(selectedMatches, playerCounts, players);
-    } else {
-      console.log('❌ 动态规划算法未找到解');
-      return null;
-    }
   },
 
   // 使用回溯法选择平衡的对战组合
@@ -558,11 +441,7 @@ Page({
     if (progress % 10 === 0 && (now - this.data.progressInfo.lastToastTime) > 1000) {
       const message = `${algorithm} - ${phase}\n进度: ${progress}%`;
       
-      wx.showToast({
-        title: message,
-        icon: 'none',
-        duration: 1500
-      });
+      this.showTips(message, 'none', 1500);
       
       // 更新最后显示toast的时间
       this.setData({
@@ -575,11 +454,7 @@ Page({
   showAlgorithmStart: function (algorithm, totalSteps) {
     const message = `开始使用${algorithm}\n预计${totalSteps.toLocaleString()}步`;
     
-    wx.showToast({
-      title: message,
-      icon: 'none',
-      duration: 2000
-    });
+    this.showTips(message, 'none', 2000);
     
     // 重置进度信息
     this.setData({
@@ -597,11 +472,7 @@ Page({
       `${algorithm}执行完成！` : 
       `${algorithm}未找到解`;
     
-    wx.showToast({
-      title: message,
-      icon: success ? 'success' : 'none',
-      duration: 2000
-    });
+    this.showTips(message, success ? 'success' : 'none', 2000);
   },
 
   // 回溯函数
@@ -1670,7 +1541,9 @@ Page({
       
       candidates.sort((a, b) => b[0] - a[0]);
       
-      for (const [score, quadIdx] of candidates) {
+      for (let ci = 0; ci < candidates.length; ci++) {
+        const score = candidates[ci][0];
+        const quadIdx = candidates[ci][1];
         const contribution = contributions[quadIdx];
         const newState = [...currentState];
         for (let i = 0; i < n; i++) {
