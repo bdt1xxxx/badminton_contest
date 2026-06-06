@@ -118,12 +118,15 @@ Page({
       return;
     }
 
-    // 计算比赛局数选项
-    const n = this.data.maxPlayers;
+    // 计算比赛局数选项：基于实际选手数量，确保 (rounds * 4) % n === 0
+    const n = this.data.players.length;
+    // 找到最小的满足条件的场数单位：lcm(n, 4) / 4
+    const gcd = (a, b) => b === 0 ? a : gcd(b, a % b);
+    const unit = n / gcd(n, 4); // 每轮需要的最少场数
     const roundOptions = [
-      { value: Math.round(4 * n / 4), checked: true, text: Math.round(4 * n / 4) + '局' },
-      { value: Math.round(8 * n / 4), checked: false, text: Math.round(8 * n / 4) + '局' },
-      { value: Math.round(12 * n / 4), checked: false, text: Math.round(12 * n / 4) + '局' }
+      { value: unit, checked: true, text: unit + '局' },
+      { value: unit * 2, checked: false, text: (unit * 2) + '局' },
+      { value: unit * 3, checked: false, text: (unit * 3) + '局' }
     ];
 
     console.log('计算比赛局数选项:', roundOptions);
