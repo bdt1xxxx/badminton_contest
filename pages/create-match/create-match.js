@@ -988,93 +988,51 @@ Page({
   reorderMatchesByConflict: function (matches) {
     console.log('\n=== 重新排序比赛（冲突比赛排在后面）===');
     console.log(`输入的比赛数量: ${matches.length}`);
-    
-    const conflictMatches = [];
-    const nonConflictMatches = [];
+
     const courtCount = this.data.courtCount;
-    
-    // 第一场比赛总是无冲突的
-    nonConflictMatches.push(matches[0]);
-    
-    // 根据场地数量决定冲突检测策略
-    if (courtCount === 2) {
-      // 2块场地：检查同时进行的比赛之间的冲突
-      // 第1场和第2场同时进行，第3场和第4场同时进行，以此类推
-      for (let i = 0; i < matches.length; i += 2) {
-        if (i + 1 < matches.length) {
-          // 检查第i场和第i+1场之间的冲突
-          const match1 = matches[i];      // 第1场、第3场、第5场...
-          const match2 = matches[i + 1];  // 第2场、第4场、第6场...
-          const conflictScore = this.calculateConflictScore(match1, match2);
-          
-          if (conflictScore === 0) {
-            // 无冲突，两场比赛都放在前面
-            if (i === 0) {
-              // 第一场比赛已经在前面了，只需要添加第二场
-              nonConflictMatches.push(match2);
-            } else {
-              // 添加两场比赛
-              nonConflictMatches.push(match1);
-              nonConflictMatches.push(match2);
-            }
-          } else {
-            // 有冲突，标记为冲突比赛
-            match1.hasConflict = true;
-            match1.conflictWith = match2.id;
-            match1.conflictScore = conflictScore;
-            match2.hasConflict = true;
-            match2.conflictWith = match1.id;
-            match2.conflictScore = conflictScore;
-            conflictMatches.push(match1);
-            conflictMatches.push(match2);
-          }
-        } else {
-          // 如果最后一场比赛是奇数场次，单独处理
-          const lastMatch = matches[i];
-          if (i > 0) {
-            nonConflictMatches.push(lastMatch);
+    const nonConflictMatches = [];
+    const conflictMatches = [];
+
+    for (let i = 0; i < matches.length; i += courtCount) {
+      const batch = matches.slice(i, i + courtCount);
+
+      // 检查批次内是否有冲突
+      let batchHasConflict = false;
+      for (let a = 0; a < batch.length && !batchHasConflict; a++) {
+        for (let b = a + 1; b < batch.length && !batchHasConflict; b++) {
+          if (this.calculateConflictScore(batch[a], batch[b]) > 0) {
+            batchHasConflict = true;
           }
         }
       }
-    } else {
-      // 其他场地数量：检查所有相邻场次的冲突
-      for (let i = 1; i < matches.length; i++) {
-        const currentMatch = matches[i];
-        const prevMatch = matches[i - 1];
-        const conflictScore = this.calculateConflictScore(prevMatch, currentMatch);
-        
-        if (conflictScore === 0) {
-          // 无冲突，继续放在前面
-          nonConflictMatches.push(currentMatch);
-        } else {
-          // 有冲突，标记为冲突比赛
-          currentMatch.hasConflict = true;
-          currentMatch.conflictWith = prevMatch.id;
-          currentMatch.conflictScore = conflictScore;
-          conflictMatches.push(currentMatch);
+
+      if (batchHasConflict) {
+        // 标记批次内所有比赛为冲突
+        for (let a = 0; a < batch.length; a++) {
+          for (let b = a + 1; b < batch.length; b++) {
+            const score = this.calculateConflictScore(batch[a], batch[b]);
+            if (score > 0) {
+              batch[a].hasConflict = true;
+              batch[a].conflictWith = batch[b].id;
+              batch[a].conflictScore = score;
+              batch[b].hasConflict = true;
+              batch[b].conflictWith = batch[a].id;
+              batch[b].conflictScore = score;
+            }
+          }
+          conflictMatches.push(batch[a]);
         }
+      } else {
+        for (const m of batch) nonConflictMatches.push(m);
       }
     }
-    
-    // 重新组合：无冲突比赛在前，冲突比赛在后
+
     const reorderedMatches = [...nonConflictMatches, ...conflictMatches];
-    
+
     console.log(`无冲突比赛: ${nonConflictMatches.length}场`);
     console.log(`冲突比赛: ${conflictMatches.length}场`);
     console.log(`重新排序后的总比赛数: ${reorderedMatches.length}场`);
-    
-    if (conflictMatches.length > 0) {
-      console.log('⚠️ 存在冲突的比赛:');
-      conflictMatches.forEach(match => {
-        // 找到与当前比赛冲突的前一场比赛
-        const prevMatch = nonConflictMatches.find(m => m.id === match.conflictWith);
-        if (prevMatch) {
-          const conflictingPlayers = this.getConflictingPlayers(prevMatch, match);
-          console.log(`  第${match.id}场与第${match.conflictWith}场有${match.conflictScore}个重复选手: ${conflictingPlayers.join(', ')}`);
-        }
-      });
-    }
-    
+
     return reorderedMatches;
   },
 
