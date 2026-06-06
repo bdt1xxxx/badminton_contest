@@ -338,10 +338,15 @@ Page({
 
     const strategies = [
       {
-        name: '回溯法',
-        method: 'selectBalancedMatchesBackTrace',
-        toast: '回溯法未找到最优解，使用备选方案'
+        name: '回溯法(MRV)',
+        method: 'selectBalancedMatchesBackTraceMRV',
+        toast: '回溯法(MRV)未找到，尝试普通回溯'
       },
+      // {
+      //   name: '回溯法',
+      //   method: 'selectBalancedMatchesBackTrace',
+      //   toast: '回溯法未找到最优解，使用备选方案'
+      // },
       {
         name: '暴力法',
         method: 'selectBalancedMatches',
@@ -381,6 +386,179 @@ Page({
     throw new Error('所有对阵生成策略都失败了');
   },
 
+  // 使用回溯法(MRV启发式)选择平衡的对战组合
+  // 关键差异 vs selectBalancedMatchesBackTrace：
+  //  1. 每层选择当前出场次数最少的选手 P，仅在包含 P 的对阵中枚举（强约束变量优先）
+  //  2. 强可行性剪枝：need[p]=targetCount-counts[p] vs supply[p]=剩余对阵中含 p 的数量
+  //  3. 状态用数组下标 + in-place +/-，避免每层深拷贝
+  //  4. 步数上限 + 时间上限双重看门狗，保证主线程最坏耗时可控
+  selectBalancedMatchesBackTraceMRV: function (validMatches, n, playerList, players) {
+    console.log('\n=== 使用回溯法(MRV)选择平衡对战组合 ===');
+
+    const P = playerList.length;
+    if ((n * 4) % P !== 0) {
+      console.log('每人出场次数不是整数，无解');
+      return null;
+    }
+    const targetCount = (n * 4) / P;
+    console.log(`目标：每个选手出场${targetCount}次`);
+
+    // player 名 -> 下标
+    const idxOf = {};
+    for (let i = 0; i < P; i++) idxOf[playerList[i]] = i;
+
+    // 预处理每个对阵的 4 个选手下标
+    const M = validMatches.length;
+    const matchPlayers = new Array(M);
+    for (let i = 0; i < M; i++) {
+      const m = validMatches[i];
+      matchPlayers[i] = [
+        idxOf[m.pair1[0]], idxOf[m.pair1[1]],
+        idxOf[m.pair2[0]], idxOf[m.pair2[1]]
+      ];
+    }
+
+    // 每个选手对应的对阵下标列表
+    const matchesByPlayer = Array.from({ length: P }, () => []);
+    for (let i = 0; i < M; i++) {
+      const ps = matchPlayers[i];
+      matchesByPlayer[ps[0]].push(i);
+      matchesByPlayer[ps[1]].push(i);
+      matchesByPlayer[ps[2]].push(i);
+      matchesByPlayer[ps[3]].push(i);
+    }
+
+    const counts = new Array(P).fill(0);            // 出场次数
+    const supply = matchesByPlayer.map(a => a.length); // 剩余可用对阵中含该选手的数量
+    const used = new Uint8Array(M);                  // 是否已被选中
+    const excluded = new Uint8Array(M);              // 是否已被排除（在当前路径上）
+    const selected = [];                             // 选中的对阵下标
+
+    const startTime = Date.now();
+    const TIME_LIMIT = 10000;
+    const STEP_LIMIT = 200000;
+    let steps = 0;
+    let timedOut = false;
+
+    // 排除某个对阵（不再可选）：从 supply 中扣除其 4 个选手
+    const excludeMatch = (i) => {
+      excluded[i] = 1;
+      const ps = matchPlayers[i];
+      supply[ps[0]]--; supply[ps[1]]--; supply[ps[2]]--; supply[ps[3]]--;
+    };
+    const restoreMatch = (i) => {
+      excluded[i] = 0;
+      const ps = matchPlayers[i];
+      supply[ps[0]]++; supply[ps[1]]++; supply[ps[2]]++; supply[ps[3]]++;
+    };
+
+    // 选中某对阵（参与方 +1，从 supply 扣除 4 次）
+    const pickMatch = (i) => {
+      used[i] = 1;
+      excluded[i] = 1;
+      const ps = matchPlayers[i];
+      counts[ps[0]]++; counts[ps[1]]++; counts[ps[2]]++; counts[ps[3]]++;
+      supply[ps[0]]--; supply[ps[1]]--; supply[ps[2]]--; supply[ps[3]]--;
+      selected.push(i);
+    };
+    const unpickMatch = (i) => {
+      used[i] = 0;
+      excluded[i] = 0;
+      const ps = matchPlayers[i];
+      counts[ps[0]]--; counts[ps[1]]--; counts[ps[2]]--; counts[ps[3]]--;
+      supply[ps[0]]++; supply[ps[1]]++; supply[ps[2]]++; supply[ps[3]]++;
+      selected.pop();
+    };
+
+    // 强可行性剪枝
+    const feasible = () => {
+      for (let p = 0; p < P; p++) {
+        if (counts[p] > targetCount) return false;
+        const need = targetCount - counts[p];
+        if (supply[p] < need) return false;
+      }
+      return true;
+    };
+
+    // 选择下一个分支变量：尚未达标且 need 最大的选手；并列时取 supply 最小的（最受约束）
+    const pickBranchPlayer = () => {
+      let best = -1;
+      let bestNeed = -1;
+      let bestSupply = Infinity;
+      for (let p = 0; p < P; p++) {
+        const need = targetCount - counts[p];
+        if (need <= 0) continue;
+        if (need > bestNeed || (need === bestNeed && supply[p] < bestSupply)) {
+          best = p;
+          bestNeed = need;
+          bestSupply = supply[p];
+        }
+      }
+      return best;
+    };
+
+    const search = () => {
+      if (++steps > STEP_LIMIT) { timedOut = true; return false; }
+      if ((steps & 1023) === 0 && Date.now() - startTime > TIME_LIMIT) {
+        timedOut = true; return false;
+      }
+
+      if (selected.length === n) {
+        // 所有选手出场次数应 == targetCount（feasible 已保证不超）
+        for (let p = 0; p < P; p++) if (counts[p] !== targetCount) return false;
+        return true;
+      }
+
+      if (!feasible()) return false;
+
+      const p = pickBranchPlayer();
+      if (p === -1) return false; // 还没选满 n 场但所有人都已达标 -> 矛盾
+
+      // 候选：包含 p 且当前未被使用/排除的对阵
+      const candidates = matchesByPlayer[p];
+      // 子节点排序：优先选"使其他短缺选手 supply 不至于打穿"的对阵
+      // 简单启发：优先与 p 一同出现的另一短缺选手所在的对阵 —— 用 counts 总和最低做近似
+      const ordered = [];
+      for (let k = 0; k < candidates.length; k++) {
+        const i = candidates[k];
+        if (used[i] || excluded[i]) continue;
+        const ps = matchPlayers[i];
+        // 4 名选手当前出场总和：越小说明本场带的"短缺人"越多，更值得早试
+        const score = counts[ps[0]] + counts[ps[1]] + counts[ps[2]] + counts[ps[3]];
+        ordered.push({ i, score });
+      }
+      ordered.sort((a, b) => a.score - b.score);
+
+      for (let k = 0; k < ordered.length; k++) {
+        const i = ordered[k].i;
+        // 选这个对阵
+        pickMatch(i);
+        if (search()) return true;
+        unpickMatch(i);
+        if (timedOut) return false;
+        // 不选这个对阵：从 supply 中暂时扣除（仍占 p 的需求）
+        excludeMatch(i);
+      }
+      // 回溯前恢复本层所有"排除"
+      for (let k = 0; k < ordered.length; k++) {
+        const i = ordered[k].i;
+        if (excluded[i] && !used[i]) restoreMatch(i);
+      }
+      return false;
+    };
+
+    const ok = search();
+    console.log(`MRV 回溯结束：steps=${steps}, 耗时=${Date.now() - startTime}ms, ok=${ok}, timedOut=${timedOut}`);
+
+    if (!ok) return null;
+
+    // 还原成上层期望的格式
+    const matches = selected.map(i => validMatches[i]);
+    const playerCounts = {};
+    for (let p = 0; p < P; p++) playerCounts[playerList[p]] = counts[p];
+    return this.formatMatches(matches, playerCounts, players);
+  },
+
   // 使用回溯法选择平衡的对战组合
   selectBalancedMatchesBackTrace: function (validMatches, n, playerList, players) {
     console.log('\n=== 使用回溯法选择平衡对战组合 ===');
@@ -391,7 +569,7 @@ Page({
 
     // 性能优化：如果搜索空间过大，直接返回null
     const searchSpace = this.calculateSearchSpace(validMatches.length, n, playerList.length);
-    if (searchSpace > 1000000) { // 超过100万种组合
+    if (searchSpace > 100000000) { // 超过100万种组合
       console.log(`⚠️ 搜索空间过大(${searchSpace.toExponential(2)})，跳过回溯法`);
       return null;
     }
