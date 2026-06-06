@@ -51,6 +51,15 @@ Page({
     });
   },
 
+  // 选择场地数量
+  onCourtCountChange: function (e) {
+    const courtCount = parseInt(e.detail.value) + 1;
+    console.log('选择场地数量:', courtCount);
+    this.setData({
+      courtCount: courtCount
+    });
+  },
+
   // 输入参赛选手姓名
   onPlayerInput: function (e) {
     const index = e.currentTarget.dataset.index;
