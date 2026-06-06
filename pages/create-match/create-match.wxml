@@ -23,6 +23,13 @@
           <view class="picker">{{maxPlayers}}人</view>
         </picker>
       </view>
+
+      <view class="form-item">
+        <text class="label">场地数量</text>
+        <picker mode="selector" range="{{['1块场地', '2块场地']}}" value="{{courtCount - 1}}" bindchange="onCourtCountChange">
+          <view class="picker">{{courtCount}}块场地</view>
+        </picker>
+      </view>
     </view>
 
     <view class="players-section">
