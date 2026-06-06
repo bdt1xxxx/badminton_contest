@@ -119,15 +119,12 @@ Page({
       return;
     }
 
-    // 计算比赛局数选项：基于实际选手数量，确保 (rounds * 4) % n === 0
+    // 计算比赛局数选项：1倍、2倍、3倍参赛人数
     const n = this.data.players.length;
-    // 找到最小的满足条件的场数单位：lcm(n, 4) / 4
-    const gcd = (a, b) => b === 0 ? a : gcd(b, a % b);
-    const unit = n / gcd(n, 4); // 每轮需要的最少场数
     const roundOptions = [
-      { value: unit, checked: true, text: unit + '局' },
-      { value: unit * 2, checked: false, text: (unit * 2) + '局' },
-      { value: unit * 3, checked: false, text: (unit * 3) + '局' }
+      { value: n, checked: true, text: n + '局' },
+      { value: n * 2, checked: false, text: (n * 2) + '局' },
+      { value: n * 3, checked: false, text: (n * 3) + '局' }
     ];
 
     console.log('计算比赛局数选项:', roundOptions);
@@ -306,9 +303,46 @@ Page({
     if (this.data.shouldShufflePlayers) {
       playerList = this.shufflePlayerList(playerList);
     }
-    const pairs = this.generatePlayerPairs(playerList);
-    const validMatches = this.generateValidMatches(pairs, playersObj, levelGap);
-    return this.selectMatchesByStrategy(validMatches, numMatches, playerList, playersObj);
+
+    // 有冲突时打乱 playerList 重试，最多 MAX_RETRIES 次，返回冲突最少的结果
+    const MAX_RETRIES = 5;
+    let bestResult = null;
+    let bestConflictCount = Infinity;
+
+    for (let attempt = 1; attempt <= MAX_RETRIES; attempt++) {
+      if (attempt > 1) {
+        this.showTips(`检测到冲突，第${attempt}次重试中...`, 'none', 1500);
+        this.sleep(300); // 短暂让出，避免微信误判无响应
+        playerList = this.shufflePlayerList(playerList);
+      }
+
+      let result = null;
+      try {
+        const pairs = this.generatePlayerPairs(playerList);
+        const validMatches = this.generateValidMatches(pairs, playersObj, levelGap);
+        result = this.selectMatchesByStrategy(validMatches, numMatches, playerList, playersObj);
+      } catch (error) {
+        console.error(`第${attempt}次尝试失败:`, error);
+        if (attempt === MAX_RETRIES && bestResult === null) throw error;
+        continue;
+      }
+
+      const conflictCount = this.calculateTotalConflicts(result.matches);
+      console.log(`第${attempt}次尝试冲突数: ${conflictCount}`);
+
+      if (conflictCount === 0) {
+        console.log(`✅ 第${attempt}次尝试成功，无冲突！`);
+        return result;
+      }
+
+      if (conflictCount < bestConflictCount) {
+        bestConflictCount = conflictCount;
+        bestResult = result;
+      }
+    }
+
+    console.log(`⚠️ 所有${MAX_RETRIES}次尝试完毕，返回冲突最少的结果（冲突数: ${bestConflictCount}）`);
+    return bestResult;
   },
 
   // 打乱选手名单顺序（Fisher-Yates，不修改原数组）
