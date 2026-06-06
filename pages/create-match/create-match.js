@@ -11,6 +11,7 @@ Page({
     roundOptions: [],
     selectedRounds: 4,
     courtCount: 2, // 场地数量，默认为2
+    shouldShufflePlayers: false, // 生成双打对阵前是否打乱选手顺序
     // 进度跟踪变量
     progressInfo: {
       currentAlgorithm: '',
@@ -301,10 +302,33 @@ Page({
       throw new Error('等级差不能为负数');
     }
 
-    const playerList = Object.keys(playersObj);
+    let playerList = Object.keys(playersObj);
+    if (this.data.shouldShufflePlayers) {
+      playerList = this.shufflePlayerList(playerList);
+    }
     const pairs = this.generatePlayerPairs(playerList);
     const validMatches = this.generateValidMatches(pairs, playersObj, levelGap);
     return this.selectMatchesByStrategy(validMatches, numMatches, playerList, playersObj);
+  },
+
+  // 打乱选手名单顺序（Fisher-Yates，不修改原数组）
+  shufflePlayerList: function (playerList) {
+    const arr = playerList.slice();
+    for (let i = arr.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      const tmp = arr[i];
+      arr[i] = arr[j];
+      arr[j] = tmp;
+    }
+    return arr;
+  },
+
+  // 是否打乱选手顺序（勾选框）
+  onShouldShufflePlayersChange: function (e) {
+    const values = e.detail.value || [];
+    this.setData({
+      shouldShufflePlayers: values.indexOf('1') !== -1
+    });
   },
 
   // 生成所有可能的2人组合

@@ -77,6 +77,23 @@
   box-sizing: border-box;
 }
 
+.shuffle-row {
+  margin-top: 20rpx;
+  margin-bottom: 0;
+}
+
+.shuffle-label {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  font-size: 28rpx;
+  color: #333;
+}
+
+.shuffle-text {
+  margin-left: 12rpx;
+}
+
 .section-header {
   margin-bottom: 20rpx;
 }
