@@ -1210,24 +1210,12 @@ Page({
     let totalConflicts = 0;
     const courtCount = this.data.courtCount;
 
-    // 根据场地数量决定冲突检测策略
-    if (courtCount === 2) {
-      // 2块场地：只检测同时进行的比赛之间的冲突
-      // 第1场和第2场同时进行，第3场和第4场同时进行，以此类推
-      for (let i = 0; i < matches.length; i += 2) {
-        if (i + 1 < matches.length) {
-          // 检查第i场和第i+1场之间的冲突
-          const match1 = matches[i];      // 第1场、第3场、第5场...
-          const match2 = matches[i + 1];  // 第2场、第4场、第6场...
-          const conflictScore = this.calculateConflictScore(match1, match2);
-          totalConflicts += conflictScore;
+    for (let i = 0; i < matches.length; i += courtCount) {
+      const batch = matches.slice(i, i + courtCount);
+      for (let a = 0; a < batch.length; a++) {
+        for (let b = a + 1; b < batch.length; b++) {
+          totalConflicts += this.calculateConflictScore(batch[a], batch[b]);
         }
-      }
-    } else {
-      // 其他场地数量：检测所有相邻场次的冲突
-      for (let i = 1; i < matches.length; i++) {
-        const conflictScore = this.calculateConflictScore(matches[i - 1], matches[i]);
-        totalConflicts += conflictScore;
       }
     }
 
