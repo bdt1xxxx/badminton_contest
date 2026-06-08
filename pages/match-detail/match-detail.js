@@ -5,12 +5,27 @@ Page({
     playerCounts: {},
     byeCounts: {},
     activeTab: 'details', // 默认显示比赛详情tab
-    playerStats: {} // 存储每个玩家的统计数据
+    playerStats: {}, // 存储每个玩家的统计数据
+    sortedPlayerStats: [],
+    matchSummary: {
+      total: 0,
+      completed: 0,
+      incomplete: 0
+    }
   },
 
   onLoad: function(options) {
     const matchId = parseInt(options.id);
     this.loadMatchDetail(matchId);
+  },
+
+  buildMatchSummary: function(matches) {
+    const completed = matches.filter(match => match.completed).length;
+    return {
+      total: matches.length,
+      completed: completed,
+      incomplete: matches.length - completed
+    };
   },
 
   // 加载比赛详情
@@ -56,7 +71,8 @@ Page({
           matches: sortedMatches,
           playerCounts: match.playerCounts || {},
           byeCounts: match.byeCounts || {},
-          playerStats: playerStats
+          playerStats: playerStats,
+          matchSummary: this.buildMatchSummary(sortedMatches)
         });
       } else {
         wx.showToast({
@@ -140,7 +156,8 @@ Page({
     console.log('排序后的比赛数据:', sortedMatches);
     
     this.setData({
-      matches: sortedMatches
+      matches: sortedMatches,
+      matchSummary: this.buildMatchSummary(sortedMatches)
     }, () => {
       console.log('页面数据更新完成，当前matches:', this.data.matches);
       
@@ -317,7 +334,7 @@ Page({
   // 获取状态颜色
   getStatusColor: function(status) {
     const colorMap = {
-      '报名中': '#3cc51f',
+      '报名中': '#16a34a',
       '进行中': '#ff9500',
       '已结束': '#999999'
     };

@@ -1,0 +1,483 @@
+<style>
+  .mock-grid {
+    display: grid;
+    grid-template-columns: repeat(5, minmax(180px, 1fr));
+    gap: 16px;
+    margin-top: 22px;
+  }
+  .screen-note {
+    margin-top: 18px;
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 14px;
+  }
+  .note-card {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 14px;
+    padding: 14px 16px;
+  }
+  .note-card h3 {
+    margin: 0 0 8px;
+    font-size: 16px;
+  }
+  .note-card p {
+    margin: 0;
+    color: #64748b;
+    line-height: 1.55;
+    font-size: 14px;
+  }
+  .phone {
+    height: 430px;
+    border: 9px solid #111827;
+    border-radius: 31px;
+    background: #f4f7f5;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 10px 30px rgba(15, 23, 42, .12);
+  }
+  .phone::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 74px;
+    height: 20px;
+    background: #111827;
+    border-radius: 0 0 13px 13px;
+    z-index: 4;
+  }
+  .topbar {
+    height: 56px;
+    padding: 26px 12px 0;
+    text-align: center;
+    font-weight: 800;
+    color: #111827;
+    background: rgba(255,255,255,.96);
+    box-sizing: border-box;
+    font-size: 12px;
+  }
+  .content {
+    height: calc(100% - 56px);
+    overflow: hidden;
+    padding: 10px 12px 54px;
+    box-sizing: border-box;
+  }
+  .hero {
+    border-radius: 16px;
+    padding: 13px;
+    background: linear-gradient(135deg, #15803d, #14b8a6);
+    color: #fff;
+    margin-bottom: 10px;
+  }
+  .hero.dark {
+    background: #17212f;
+  }
+  .hero.gold {
+    background: linear-gradient(135deg, #16a34a, #facc15);
+    color: #102318;
+  }
+  .hero strong {
+    display: block;
+    font-size: 17px;
+    line-height: 1.15;
+    margin-bottom: 6px;
+  }
+  .hero span {
+    font-size: 10px;
+    opacity: .92;
+  }
+  .seg {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    background: #e8f2eb;
+    padding: 3px;
+    border-radius: 999px;
+    margin-bottom: 10px;
+    font-size: 10px;
+    font-weight: 800;
+    text-align: center;
+    color: #64748b;
+  }
+  .seg span {
+    padding: 6px;
+    border-radius: 999px;
+  }
+  .seg .on {
+    background: #fff;
+    color: #166534;
+    box-shadow: 0 1px 5px rgba(22,101,52,.12);
+  }
+  .field {
+    background: #fff;
+    border-radius: 12px;
+    padding: 9px 10px;
+    margin-bottom: 8px;
+    border: 1px solid #e5efe8;
+  }
+  .label {
+    font-size: 9px;
+    font-weight: 800;
+    color: #64748b;
+    margin-bottom: 4px;
+  }
+  .value {
+    color: #111827;
+    font-size: 13px;
+    font-weight: 800;
+  }
+  .two {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 7px;
+  }
+  .player-row, .match-line, .rank-line {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+    align-items: center;
+    background: #fff;
+    border: 1px solid #e5efe8;
+    border-radius: 12px;
+    padding: 8px 10px;
+    margin-bottom: 7px;
+    font-size: 11px;
+    color: #111827;
+  }
+  .chip {
+    border-radius: 999px;
+    background: #dcfce7;
+    color: #166534;
+    padding: 3px 7px;
+    font-size: 9px;
+    font-weight: 900;
+  }
+  .cta {
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    border-radius: 14px;
+    background: #16a34a;
+    color: #fff;
+    font-size: 13px;
+    font-weight: 900;
+    text-align: center;
+    padding: 12px;
+  }
+  .tabbar {
+    position: absolute;
+    bottom: 0;
+    left: 0;
+    right: 0;
+    height: 46px;
+    background: rgba(255,255,255,.97);
+    border-top: 1px solid #e5e7eb;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    place-items: center;
+    font-size: 9px;
+    font-weight: 800;
+    color: #64748b;
+  }
+  .tabbar .active {
+    color: #16a34a;
+  }
+  .card-title {
+    font-size: 13px;
+    font-weight: 900;
+    text-align: center;
+    color: #111827;
+    margin: 9px 0 0;
+  }
+  .match-card {
+    background: #fff;
+    border-radius: 15px;
+    padding: 11px;
+    margin-bottom: 10px;
+    border: 1px solid #e5efe8;
+  }
+  .match-title {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    font-size: 12px;
+    font-weight: 900;
+    color: #111827;
+    margin-bottom: 8px;
+  }
+  .mini-stats {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 6px;
+  }
+  .mini-stat {
+    background: #f8fafc;
+    border-radius: 10px;
+    padding: 7px;
+  }
+  .mini-stat span {
+    display: block;
+    color: #64748b;
+    font-size: 8px;
+    margin-bottom: 3px;
+  }
+  .mini-stat b {
+    color: #111827;
+    font-size: 11px;
+  }
+  .actions {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 8px;
+    margin-top: 9px;
+  }
+  .btn {
+    border-radius: 11px;
+    text-align: center;
+    padding: 8px;
+    color: #fff;
+    background: #16a34a;
+    font-size: 10px;
+    font-weight: 900;
+  }
+  .btn.ghost {
+    background: #fee2e2;
+    color: #b91c1c;
+    width: 42px;
+  }
+  .score-card {
+    background: #fff;
+    border: 1px solid #e5efe8;
+    border-radius: 15px;
+    margin-bottom: 9px;
+    overflow: hidden;
+  }
+  .score-head {
+    padding: 8px 10px;
+    background: #f0fdf4;
+    display: flex;
+    justify-content: space-between;
+    font-size: 10px;
+    font-weight: 900;
+    color: #166534;
+  }
+  .versus {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    align-items: center;
+    gap: 7px;
+    padding: 12px 10px;
+    text-align: center;
+    font-size: 11px;
+    color: #111827;
+    font-weight: 800;
+  }
+  .versus .vs {
+    color: #94a3b8;
+    font-size: 11px;
+  }
+  .score-inputs {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr 1.4fr;
+    gap: 6px;
+    padding: 8px 10px 10px;
+    align-items: center;
+  }
+  .score-box {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 9px;
+    padding: 7px;
+    text-align: center;
+    color: #94a3b8;
+    font-size: 10px;
+  }
+  .done {
+    background: #16a34a;
+    color: white;
+    border-radius: 999px;
+    padding: 7px 0;
+    text-align: center;
+    font-size: 10px;
+    font-weight: 900;
+  }
+  .rank-line {
+    grid-template-columns: 24px 1fr auto auto;
+  }
+  .positive {
+    color: #16a34a;
+    font-weight: 900;
+  }
+  .profile-card {
+    background: #fff;
+    border-radius: 17px;
+    padding: 14px;
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 12px;
+    align-items: center;
+    margin-bottom: 12px;
+    border: 1px solid #e5efe8;
+  }
+  .avatar {
+    width: 44px;
+    height: 44px;
+    border-radius: 50%;
+    background: #dcfce7;
+    display: grid;
+    place-items: center;
+    color: #15803d;
+    font-weight: 900;
+  }
+  .tool-button {
+    background: white;
+    border: 1px solid #e5efe8;
+    border-radius: 13px;
+    padding: 11px 12px;
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    color: #111827;
+    font-size: 12px;
+    font-weight: 850;
+  }
+  @media (max-width: 1100px) {
+    .mock-grid { grid-template-columns: repeat(2, minmax(180px, 1fr)); }
+    .screen-note { grid-template-columns: 1fr; }
+  }
+</style>
+
+<h2>A + B 的完整页面骨架</h2>
+<p class="subtitle">这版设计以组织者快速创建、现场快速记分为主，同时在列表和统计里加入一点榜单感。请先看整体结构是否对。</p>
+
+<div class="mock-grid">
+  <div>
+    <div class="phone">
+      <div class="topbar">创建比赛</div>
+      <div class="content">
+        <div class="hero">
+          <strong>创建一场新比赛</strong>
+          <span>先填基础信息，再录入选手等级</span>
+        </div>
+        <div class="seg"><span class="on">双打</span><span>单打</span></div>
+        <div class="field"><div class="label">比赛名称</div><div class="value">周一训练局</div></div>
+        <div class="two">
+          <div class="field"><div class="label">人数</div><div class="value">8 人</div></div>
+          <div class="field"><div class="label">场地</div><div class="value">2 块</div></div>
+        </div>
+        <div class="player-row"><span>q</span><span class="chip">Lv 3.5</span></div>
+        <div class="player-row"><span>w</span><span class="chip">Lv 3</span></div>
+        <div class="player-row"><span>添加选手</span><span>6/8</span></div>
+      </div>
+      <div class="cta">生成对阵</div>
+    </div>
+    <div class="card-title">创建页</div>
+  </div>
+
+  <div>
+    <div class="phone">
+      <div class="topbar">比赛列表</div>
+      <div class="content">
+        <div class="hero gold">
+          <strong>今天有 2 场比赛</strong>
+          <span>报名中 2 · 已完成 0</span>
+        </div>
+        <div class="match-card">
+          <div class="match-title"><span>周一训练局</span><span class="chip">报名中</span></div>
+          <div class="mini-stats">
+            <div class="mini-stat"><span>类型</span><b>双打</b></div>
+            <div class="mini-stat"><span>人数</span><b>8/8</b></div>
+            <div class="mini-stat"><span>场次</span><b>16</b></div>
+          </div>
+          <div class="actions"><div class="btn">进入比赛</div><div class="btn ghost">删</div></div>
+        </div>
+        <div class="match-card">
+          <div class="match-title"><span>周末群友赛</span><span class="chip">报名中</span></div>
+          <div class="mini-stats">
+            <div class="mini-stat"><span>类型</span><b>双打</b></div>
+            <div class="mini-stat"><span>人数</span><b>6/8</b></div>
+            <div class="mini-stat"><span>场次</span><b>12</b></div>
+          </div>
+        </div>
+      </div>
+      <div class="tabbar"><span>创建</span><span class="active">比赛</span><span>我的</span></div>
+    </div>
+    <div class="card-title">列表页</div>
+  </div>
+
+  <div>
+    <div class="phone">
+      <div class="topbar">比赛详情</div>
+      <div class="content">
+        <div class="hero dark">
+          <strong>第 1 轮 · 2 块场地</strong>
+          <span>优先展示未完成场次，完成后自动下沉</span>
+        </div>
+        <div class="seg"><span class="on">对阵</span><span>统计</span></div>
+        <div class="score-card">
+          <div class="score-head"><span>第 1 场</span><span>等级差 0.5</span></div>
+          <div class="versus"><span>q<br>w</span><span class="vs">VS</span><span>e<br>u</span></div>
+          <div class="score-inputs"><div class="score-box">21</div><span>:</span><div class="score-box">18</div><div class="done">完成</div></div>
+        </div>
+        <div class="score-card">
+          <div class="score-head"><span>第 2 场</span><span>等级差 0</span></div>
+          <div class="versus"><span>r<br>t</span><span class="vs">VS</span><span>y<br>i</span></div>
+          <div class="score-inputs"><div class="score-box">分</div><span>:</span><div class="score-box">分</div><div class="done">完成</div></div>
+        </div>
+      </div>
+    </div>
+    <div class="card-title">详情记分页</div>
+  </div>
+
+  <div>
+    <div class="phone">
+      <div class="topbar">分数统计</div>
+      <div class="content">
+        <div class="hero">
+          <strong>排行榜</strong>
+          <span>按胜场排序，同胜场比分差优先</span>
+        </div>
+        <div class="rank-line"><b>1</b><span>q</span><span>3 胜</span><span class="positive">+18</span></div>
+        <div class="rank-line"><b>2</b><span>w</span><span>2 胜</span><span class="positive">+7</span></div>
+        <div class="rank-line"><b>3</b><span>e</span><span>2 胜</span><span class="positive">+2</span></div>
+        <div class="rank-line"><b>4</b><span>r</span><span>1 胜</span><span>0</span></div>
+      </div>
+    </div>
+    <div class="card-title">统计页</div>
+  </div>
+
+  <div>
+    <div class="phone">
+      <div class="topbar">我的</div>
+      <div class="content">
+        <div class="profile-card">
+          <div class="avatar">微</div>
+          <div><div class="value">微信用户</div><div class="label">本地数据管理</div></div>
+        </div>
+        <div class="field"><div class="label">本机比赛数据</div><div class="value">2 场比赛 · 28 条对阵</div></div>
+        <div class="tool-button"><span>导出数据</span><span>›</span></div>
+        <div class="tool-button"><span>导入数据</span><span>›</span></div>
+        <div class="tool-button"><span style="color:#dc2626">清除数据</span><span>›</span></div>
+      </div>
+      <div class="tabbar"><span>创建</span><span>比赛</span><span class="active">我的</span></div>
+    </div>
+    <div class="card-title">我的页</div>
+  </div>
+</div>
+
+<div class="screen-note">
+  <div class="note-card">
+    <h3>设计原则</h3>
+    <p>用绿色做主操作和比赛状态，深色只在记分页突出“现场控制台”。页面减少方框堆叠，改为分组卡片、胶囊状态和固定底部主按钮。</p>
+  </div>
+  <div class="note-card">
+    <h3>易用性重点</h3>
+    <p>创建页按“基础信息 → 选手 → 生成”组织；详情页把未完成对阵放在第一优先级；统计页强化排序依据，避免用户猜规则。</p>
+  </div>
+  <div class="note-card">
+    <h3>实现边界</h3>
+    <p>不改本地存储结构和排阵算法，先重做 WXML/WXSS 的信息层级。必要时只加少量派生展示字段，比如已完成场次、今日比赛数。</p>
+  </div>
+</div>

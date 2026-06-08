@@ -1,6 +1,11 @@
 Page({
   data: {
-    matches: []
+    matches: [],
+    summary: {
+      total: 0,
+      active: 0,
+      generatedMatches: 0
+    }
   },
 
   onLoad: function() {
@@ -9,6 +14,16 @@ Page({
 
   onShow: function() {
     this.loadMatches();
+  },
+
+  buildSummary: function(matches) {
+    return {
+      total: matches.length,
+      active: matches.filter(match => match.status !== '已结束').length,
+      generatedMatches: matches.reduce((total, match) => {
+        return total + ((match.matches && match.matches.length) || 0);
+      }, 0)
+    };
   },
 
   // 加载比赛数据
@@ -40,7 +55,8 @@ Page({
       });
       
       this.setData({
-        matches: matches
+        matches: matches,
+        summary: this.buildSummary(matches)
       });
       
       console.log('页面数据更新完成，当前matches:', this.data.matches);
@@ -71,7 +87,8 @@ Page({
           try {
             wx.setStorageSync('matches', matches);
             this.setData({
-              matches: matches
+              matches: matches,
+              summary: this.buildSummary(matches)
             });
             
             wx.showToast({
@@ -89,30 +106,37 @@ Page({
     });
   },
 
-  // 格式化日期
-  formatDate: function(dateString) {
-    if (!dateString) return '未知';
-    const date = new Date(dateString);
-    const month = date.getMonth() + 1;
-    const day = date.getDate();
-    return `${month}月${day}日`;
-  },
+  // 格式化比赛创建时间：2026年5月27日 14:30
+  formatMatchCreateTime: function(match) {
+    if (!match) return '未知';
 
-  // 格式化日期时间
-  formatDateTime: function(dateTimeString) {
-    if (!dateTimeString) return '未知';
-    const date = new Date(dateTimeString);
+    let date;
+    if (match.createTime) {
+      date = new Date(match.createTime);
+    } else if (match.date && match.time) {
+      date = new Date(`${match.date}T${match.time}:00`);
+    } else if (match.date) {
+      date = new Date(match.date);
+    } else {
+      return '未知';
+    }
+
+    if (Number.isNaN(date.getTime())) {
+      return '未知';
+    }
+
+    const year = date.getFullYear();
     const month = date.getMonth() + 1;
     const day = date.getDate();
     const hours = date.getHours().toString().padStart(2, '0');
     const minutes = date.getMinutes().toString().padStart(2, '0');
-    return `${month}月${day}日 ${hours}:${minutes}`;
+    return `${year}年${month}月${day}日 ${hours}:${minutes}`;
   },
 
   // 获取状态颜色
   getStatusColor: function(status) {
     const colorMap = {
-      '报名中': '#3cc51f',
+      '报名中': '#16a34a',
       '进行中': '#ff9500',
       '已结束': '#999999'
     };

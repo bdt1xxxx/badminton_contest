@@ -1,119 +1,120 @@
-<view class="container">
-  <view class="header">
-    <text class="title">创建新比赛</text>
-  </view>
+<view class="container create-page">
+  <view class="page-content">
+    <view class="hero-section">
+      <text class="hero-title">创建一场新比赛</text>
+      <text class="hero-subtitle">先确认赛制，再录入选手和等级</text>
+    </view>
 
-  <view class="main-panel">
-    <view class="form-section">
+    <view class="section-card setup-card">
+      <view class="section-header">
+        <text class="section-title">赛制设置</text>
+        <text class="section-meta">{{matchType}}优先</text>
+      </view>
+
+      <view class="type-segment">
+        <view class="segment-item {{matchType === '双打' ? 'active' : ''}}" bindtap="onTypeTap" data-type="双打">
+          <text>双打</text>
+        </view>
+        <view class="segment-item {{matchType === '单打' ? 'active' : ''}}" bindtap="onTypeTap" data-type="单打">
+          <text>单打</text>
+        </view>
+      </view>
+
       <view class="form-item">
         <text class="label">比赛名称 *</text>
-        <input class="input" placeholder="请输入比赛名称" value="{{matchName}}" bindinput="onMatchNameInput" />
+        <input class="input" placeholder="例如：周一训练局" value="{{matchName}}" bindinput="onMatchNameInput" />
       </view>
 
-      <view class="form-item">
-        <text class="label">比赛类型</text>
-        <picker mode="selector" range="{{matchTypes}}" value="{{matchTypes.indexOf(matchType)}}" bindchange="onTypeChange">
-          <view class="picker">{{matchType}}</view>
-        </picker>
-      </view>
+      <view class="form-grid">
+        <view class="form-item">
+          <text class="label">参赛人数</text>
+          <picker mode="selector" range="{{[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]}}" value="{{maxPlayers-1}}" bindchange="onMaxPlayersChange">
+            <view class="picker">{{maxPlayers}}人</view>
+          </picker>
+        </view>
 
-      <view class="form-item">
-        <text class="label">参赛人数</text>
-        <picker mode="selector" range="{{[1,2,3,4,5,6,7,8,9,10,11,12,13,14,15,16,17,18,19,20]}}" value="{{maxPlayers-1}}" bindchange="onMaxPlayersChange">
-          <view class="picker">{{maxPlayers}}人</view>
-        </picker>
-      </view>
-
-      <view class="form-item">
-        <text class="label">场地数量</text>
-        <picker mode="selector" range="{{['1块场地', '2块场地']}}" value="{{courtCount - 1}}" bindchange="onCourtCountChange">
-          <view class="picker">{{courtCount}}块场地</view>
-        </picker>
+        <view class="form-item">
+          <text class="label">场地数量</text>
+          <picker mode="selector" range="{{['1块场地', '2块场地']}}" value="{{courtCount - 1}}" bindchange="onCourtCountChange">
+            <view class="picker">{{courtCount}}块</view>
+          </picker>
+        </view>
       </view>
     </view>
 
-    <view class="players-section">
+    <view class="section-card players-card">
       <view class="section-header">
-        <text class="section-title">参赛选手 ({{players.length}}/{{maxPlayers}})</text>
+        <text class="section-title">参赛选手</text>
+        <text class="section-meta">{{players.length}}/{{maxPlayers}}</text>
       </view>
 
-      <view class="players-panel">
-        <view class="panel-header">
-          <text class="header-nickname">昵称</text>
-          <text class="header-level">等级</text>
-        </view>
-        
-        <view class="panel-body">
-          <view class="input-row" wx:for="{{maxPlayers}}" wx:key="index">
-            <view class="input-group">
-              <input class="nickname-input" 
-                     placeholder="输入选手姓名" 
-                     value="{{index < players.length ? players[index].name : ''}}" 
-                     bindinput="onPlayerInput" 
-                     data-index="{{index}}" />
-              <picker class="level-picker" 
-                      mode="selector" 
-                      range="{{[1,1.5,2,2.5,3,3.5,4,4.5,5,5.5,6,6.5,7,7.5,8,8.5,9,9.5,10]}}" 
-                      value="{{index < players.length ? [1,1.5,2,2.5,3,3.5,4,4.5,5,5.5,6,6.5,7,7.5,8,8.5,9,9.5,10].indexOf(players[index].score || 1) : 0}}" 
-                      bindchange="onScoreChange" 
-                      data-index="{{index}}">
-                <view class="level-display">{{index < players.length ? (players[index].score || 1) : 1}}</view>
-              </picker>
-            </view>
-          </view>
-        </view>
-      </view>
-
-      <view class="form-item shuffle-row">
-        <checkbox-group bindchange="onShouldShufflePlayersChange">
-          <label class="shuffle-label">
-            <checkbox value="1" checked="{{shouldShufflePlayers}}" />
-            <text class="shuffle-text">打乱顺序</text>
-          </label>
-        </checkbox-group>
+      <view class="player-row" wx:for="{{maxPlayers}}" wx:key="index">
+        <view class="player-index">{{index + 1}}</view>
+        <input class="player-input"
+               placeholder="输入选手姓名"
+               value="{{index < players.length ? players[index].name : ''}}"
+               bindinput="onPlayerInput"
+               data-index="{{index}}" />
+        <picker class="level-picker"
+                mode="selector"
+                range="{{[1,1.5,2,2.5,3,3.5,4,4.5,5,5.5,6,6.5,7,7.5,8,8.5,9,9.5,10]}}"
+                value="{{index < players.length ? [1,1.5,2,2.5,3,3.5,4,4.5,5,5.5,6,6.5,7,7.5,8,8.5,9,9.5,10].indexOf(players[index].score || 1) : 0}}"
+                bindchange="onScoreChange"
+                data-index="{{index}}">
+          <view class="level-pill">Lv {{index < players.length ? (players[index].score || 1) : 1}}</view>
+        </picker>
       </view>
     </view>
   </view>
 
   <view class="submit-section">
-    <button class="submit-btn" bindtap="showConfirmDialog">创建比赛</button>
+    <button class="submit-btn" bindtap="showConfirmDialog">生成对阵</button>
   </view>
 
-  <!-- 确认设置弹窗 -->
   <view class="confirm-dialog" wx:if="{{showConfirmDialog}}">
     <view class="dialog-overlay" bindtap="hideConfirmDialog"></view>
     <view class="dialog-content">
       <view class="dialog-header">
-        <text class="dialog-title">确认设置</text>
+        <text class="dialog-title">排阵设置</text>
       </view>
-      
+
       <view class="dialog-body">
         <view class="dialog-item">
           <text class="dialog-label">组间等级差距</text>
-          <picker class="dialog-picker" 
-                  mode="selector" 
-                  range="{{[0,0.5,1,1.5,2]}}" 
-                  value="{{levelGapIndex}}" 
+          <picker class="dialog-picker"
+                  mode="selector"
+                  range="{{[0,0.5,1,1.5,2]}}"
+                  value="{{levelGapIndex}}"
                   bindchange="onLevelGapChange">
             <view class="picker-display">{{levelGap}}</view>
           </picker>
         </view>
-        
+
         <view class="dialog-item">
           <text class="dialog-label">比赛局数</text>
           <view class="radio-group">
             <view class="radio-item" wx:for="{{roundOptions}}" wx:key="index">
-              <radio class="radio" 
-                     value="{{item.value}}" 
-                     checked="{{item.checked}}" 
-                     bindtap="onRoundSelect" 
+              <radio class="radio"
+                     value="{{item.value}}"
+                     checked="{{item.checked}}"
+                     bindtap="onRoundSelect"
                      data-index="{{index}}" />
               <text class="radio-label">{{item.text}}</text>
             </view>
           </view>
         </view>
+
+        <view class="dialog-item">
+          <text class="dialog-label">排阵策略</text>
+          <checkbox-group bindchange="onShouldShufflePlayersChange">
+            <label class="shuffle-label">
+              <checkbox value="1" checked="{{shouldShufflePlayers}}" color="#16A34A" />
+              <text class="shuffle-text">生成前打乱选手顺序</text>
+            </label>
+          </checkbox-group>
+        </view>
       </view>
-      
+
       <view class="dialog-footer">
         <button class="dialog-btn cancel-btn" bindtap="hideConfirmDialog">取消</button>
         <button class="dialog-btn confirm-btn" bindtap="createMatch">生成对阵</button>
@@ -121,23 +122,22 @@
     </view>
   </view>
 
-  <!-- 算法执行进度显示 -->
   <view class="progress-overlay" wx:if="{{progressInfo.currentAlgorithm}}">
     <view class="progress-content">
       <view class="progress-header">
         <text class="progress-title">算法执行中...</text>
       </view>
-      
+
       <view class="progress-body">
         <view class="algorithm-info">
           <text class="algorithm-name">{{progressInfo.currentAlgorithm}}</text>
           <text class="algorithm-phase">{{progressInfo.currentPhase}}</text>
         </view>
-        
+
         <view class="progress-bar">
           <view class="progress-fill" style="width: {{progressInfo.progress}}"></view>
         </view>
-        
+
         <view class="progress-text">
           <text class="progress-percentage">{{progressInfo.progress}}%</text>
           <text class="progress-steps">{{progressInfo.progress}} / {{progressInfo.totalSteps}}</text>
@@ -145,4 +145,4 @@
       </view>
     </view>
   </view>
-</view> 
+</view>

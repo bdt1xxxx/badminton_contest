@@ -4,15 +4,45 @@ Page({
       nickname: '匿名',
       avatar: '/images/profile.png'
     },
-    hasUserInfo: false
+    hasUserInfo: false,
+    dataSummary: {
+      matchCount: 0,
+      generatedMatches: 0,
+      playerCount: 0
+    }
+  },
+
+  loadDataSummary: function() {
+    const matches = wx.getStorageSync('matches') || [];
+    const playerNames = {};
+
+    matches.forEach(match => {
+      (match.players || []).forEach(player => {
+        if (player && player.name) {
+          playerNames[player.name] = true;
+        }
+      });
+    });
+
+    this.setData({
+      dataSummary: {
+        matchCount: matches.length,
+        generatedMatches: matches.reduce((total, match) => {
+          return total + ((match.matches && match.matches.length) || 0);
+        }, 0),
+        playerCount: Object.keys(playerNames).length
+      }
+    });
   },
 
   onLoad: function() {
     this.getUserProfile();
+    this.loadDataSummary();
   },
 
   onShow: function() {
     this.getUserProfile();
+    this.loadDataSummary();
   },
 
   // 获取用户信息
@@ -262,6 +292,7 @@ Page({
         if (res.confirm) {
           try {
             wx.removeStorageSync('matches');
+            this.loadDataSummary();
             
             wx.showToast({
               title: '数据已清除',

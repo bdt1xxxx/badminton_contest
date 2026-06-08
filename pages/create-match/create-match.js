@@ -2,7 +2,7 @@ Page({
   data: {
     matchName: '',
     maxPlayers: 1,
-    matchType: '单打',
+    matchType: '双打',
     matchTypes: ['单打', '双打'],
     players: [],
     showConfirmDialog: false,
@@ -38,6 +38,17 @@ Page({
   onTypeChange: function (e) {
     console.log('选择比赛类型:', e.detail.value);
     const matchType = this.data.matchTypes[e.detail.value];
+    this.setData({
+      matchType: matchType
+    });
+  },
+
+  onTypeTap: function (e) {
+    const matchType = e.currentTarget.dataset.type;
+    if (!matchType || matchType === this.data.matchType) {
+      return;
+    }
+
     this.setData({
       matchType: matchType
     });

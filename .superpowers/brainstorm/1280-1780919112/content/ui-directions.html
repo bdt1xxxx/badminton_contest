@@ -1,0 +1,250 @@
+<style>
+  .intro-grid {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 18px;
+    margin-top: 22px;
+  }
+  .direction-card {
+    border: 2px solid #e5e7eb;
+    border-radius: 18px;
+    padding: 16px;
+    cursor: pointer;
+    background: #fff;
+    transition: 160ms ease;
+  }
+  .direction-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 14px 36px rgba(15, 23, 42, .12);
+  }
+  .direction-card.selected {
+    border-color: #16a34a;
+    box-shadow: 0 0 0 4px rgba(22, 163, 74, .12);
+  }
+  .phone {
+    width: 100%;
+    max-width: 230px;
+    height: 430px;
+    margin: 0 auto 14px;
+    border: 10px solid #111827;
+    border-radius: 34px;
+    overflow: hidden;
+    background: #f8fafc;
+    position: relative;
+    box-shadow: inset 0 0 0 1px rgba(255,255,255,.5);
+  }
+  .phone::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 50%;
+    width: 88px;
+    height: 22px;
+    transform: translateX(-50%);
+    background: #111827;
+    border-radius: 0 0 14px 14px;
+    z-index: 3;
+  }
+  .mini-top {
+    height: 58px;
+    padding: 26px 16px 0;
+    box-sizing: border-box;
+    font-size: 12px;
+    font-weight: 700;
+    color: #111827;
+    text-align: center;
+    background: rgba(255,255,255,.92);
+  }
+  .pill-row {
+    display: flex;
+    gap: 6px;
+    padding: 10px 14px 0;
+  }
+  .pill {
+    border-radius: 999px;
+    padding: 5px 9px;
+    font-size: 10px;
+    font-weight: 700;
+  }
+  .hero {
+    margin: 12px 14px;
+    border-radius: 16px;
+    padding: 14px;
+    color: white;
+  }
+  .hero strong {
+    display: block;
+    font-size: 18px;
+    line-height: 1.15;
+    margin-bottom: 6px;
+  }
+  .hero span {
+    font-size: 10px;
+    opacity: .9;
+  }
+  .field, .stat, .match-row, .rank-row {
+    background: white;
+    border-radius: 12px;
+    margin: 9px 14px;
+    padding: 10px 12px;
+    font-size: 10px;
+    color: #64748b;
+    box-shadow: 0 1px 0 rgba(15,23,42,.06);
+  }
+  .field b, .stat b, .match-row b, .rank-row b {
+    display: block;
+    color: #111827;
+    font-size: 14px;
+    margin-top: 3px;
+  }
+  .fields-2 {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    margin: 0 14px;
+    gap: 8px;
+  }
+  .fields-2 .field, .fields-2 .stat {
+    margin: 0;
+  }
+  .cta {
+    position: absolute;
+    left: 14px;
+    right: 14px;
+    bottom: 18px;
+    border-radius: 14px;
+    padding: 13px;
+    text-align: center;
+    color: white;
+    font-size: 13px;
+    font-weight: 800;
+  }
+  .nav {
+    position: absolute;
+    left: 0;
+    right: 0;
+    bottom: 0;
+    height: 42px;
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    place-items: center;
+    background: rgba(255,255,255,.96);
+    border-top: 1px solid rgba(15,23,42,.08);
+    font-size: 9px;
+    font-weight: 700;
+  }
+  .a .hero { background: linear-gradient(135deg, #0f766e, #22c55e); }
+  .a .pill { background: #dcfce7; color: #166534; }
+  .a .cta { background: #16a34a; }
+  .b .phone { background: #f6f7fb; }
+  .b .hero { background: #111827; }
+  .b .pill { background: #e0f2fe; color: #075985; }
+  .b .cta { background: #2563eb; }
+  .c .phone { background: #fff7ed; }
+  .c .hero { background: linear-gradient(135deg, #ea580c, #facc15); color: #111827; }
+  .c .pill { background: #ffedd5; color: #9a3412; }
+  .c .cta { background: #ea580c; }
+  .card-title {
+    font-size: 18px;
+    font-weight: 800;
+    margin: 0 0 8px;
+    color: #111827;
+  }
+  .card-copy {
+    color: #64748b;
+    font-size: 14px;
+    line-height: 1.55;
+    margin: 0;
+  }
+  .tagline {
+    display: inline-flex;
+    align-items: center;
+    border-radius: 999px;
+    background: #f1f5f9;
+    color: #334155;
+    padding: 6px 10px;
+    font-size: 12px;
+    font-weight: 700;
+    margin-top: 10px;
+  }
+  @media (max-width: 1000px) {
+    .intro-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+
+<h2>先定一版整体气质</h2>
+<p class="subtitle">请看三种适合羽毛球比赛管理小程序的 UI 方向。你可以点击选择一个，也可以在终端告诉我想混合哪些元素。</p>
+
+<div class="intro-grid">
+  <div class="direction-card a" data-choice="a" onclick="toggleSelect(this)">
+    <div class="phone">
+      <div class="mini-top">创建比赛</div>
+      <div class="hero">
+        <strong>今晚双打排阵</strong>
+        <span>8 人 · 2 块场地 · 16 场</span>
+      </div>
+      <div class="pill-row">
+        <div class="pill">双打</div>
+        <div class="pill">均衡出场</div>
+      </div>
+      <div class="field">比赛名称<b>周一训练局</b></div>
+      <div class="fields-2">
+        <div class="field">人数<b>8 人</b></div>
+        <div class="field">场地<b>2 块</b></div>
+      </div>
+      <div class="field">选手与等级<b>已填 6/8</b></div>
+      <div class="cta">生成对阵</div>
+    </div>
+    <h3 class="card-title">A. 运动绿 · 轻量专业</h3>
+    <p class="card-copy">保留微信小程序的清爽感，用羽毛球场地绿建立品牌识别。适合当前功能体量，改造成本较低。</p>
+    <div class="tagline">我的推荐：稳妥、舒服、好实现</div>
+  </div>
+
+  <div class="direction-card b" data-choice="b" onclick="toggleSelect(this)">
+    <div class="phone">
+      <div class="mini-top">比赛详情</div>
+      <div class="pill-row">
+        <div class="pill">进行中</div>
+        <div class="pill">第 3/16 场</div>
+      </div>
+      <div class="hero">
+        <strong>q / w VS e / u</strong>
+        <span>等级差 0.5 · 第 1 轮</span>
+      </div>
+      <div class="fields-2">
+        <div class="stat">左队<b>21</b></div>
+        <div class="stat">右队<b>18</b></div>
+      </div>
+      <div class="match-row">下一场<b>r / t VS y / i</b></div>
+      <div class="match-row">统计榜<b>q 暂列第 1</b></div>
+      <div class="cta">完成本场</div>
+    </div>
+    <h3 class="card-title">B. 赛事控制台 · 高效率</h3>
+    <p class="card-copy">强调比赛当天的操作效率：当前场次、下一场、比分输入、完成按钮优先。更像裁判/组织者工具。</p>
+    <div class="tagline">适合高频记分和现场排场</div>
+  </div>
+
+  <div class="direction-card c" data-choice="c" onclick="toggleSelect(this)">
+    <div class="phone">
+      <div class="mini-top">比赛列表</div>
+      <div class="hero">
+        <strong>群友挑战赛</strong>
+        <span>报名中 · 还差 2 人开赛</span>
+      </div>
+      <div class="fields-2">
+        <div class="stat">胜场王<b>q</b></div>
+        <div class="stat">总场次<b>16</b></div>
+      </div>
+      <div class="rank-row">1　q　胜 3　+18</div>
+      <div class="rank-row">2　w　胜 2　+7</div>
+      <div class="rank-row">3　e　胜 2　+2</div>
+      <div class="nav">
+        <span>创建</span><span>比赛</span><span>我的</span>
+      </div>
+    </div>
+    <h3 class="card-title">C. 活力榜单 · 社交感</h3>
+    <p class="card-copy">更强调参与感和结果展示，适合熟人局、社群活动。视觉更热闹，但需要控制信息别太花。</p>
+    <div class="tagline">适合想要更有“比赛氛围”</div>
+  </div>
+</div>
