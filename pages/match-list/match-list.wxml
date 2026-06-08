@@ -1,53 +1,48 @@
-<view class="container">
-  <view class="header">
-    <text class="title">比赛列表</text>
-  </view>
+<view class="container list-page">
+  <view class="page-content">
+    <view class="summary-card">
+      <view>
+        <text class="summary-title">比赛总览</text>
+        <text class="summary-subtitle">{{summary.total}} 场比赛 · {{summary.generatedMatches}} 条对阵</text>
+      </view>
+      <view class="summary-pill">{{summary.active}} 进行中</view>
+    </view>
 
-  <view class="matches-list">
     <block wx:if="{{matches.length > 0}}">
-      <view class="match-item" wx:for="{{matches}}" wx:key="id">
-        <view class="match-info">
-          <view class="match-status-top">
-            <text class="match-status" style="color: {{getStatusColor(item.status)}}">{{item.status}}</text>
+      <view class="match-card" wx:for="{{matches}}" wx:key="id">
+        <view class="match-card-header">
+          <view>
+            <text class="match-name">{{item.name}}</text>
+            <text class="match-time">{{formatMatchCreateTime(item)}}</text>
           </view>
-          <view class="info-grid">
-            <view class="info-item">
-              <text class="info-label">比赛时间</text>
-              <text class="info-value">{{formatDate(item.date)}} {{item.time}}</text>
-            </view>
-            <view class="info-item">
-              <text class="info-label">类型</text>
-              <text class="info-value">{{item.type}}</text>
-            </view>
-            <view class="info-item">
-              <text class="info-label">参赛人数</text>
-              <text class="info-value">{{item.players.length}}/{{item.maxPlayers}}人</text>
-            </view>
-            <view class="info-item">
-              <text class="info-label">比赛场数</text>
-              <text class="info-value">{{item.rounds}}局</text>
-            </view>
-            <view class="info-item" wx:if="{{item.matches && item.matches.length > 0}}">
-              <text class="info-label">对阵数量</text>
-              <text class="info-value">{{item.matches.length}}场</text>
-            </view>
-            <view class="info-item">
-              <text class="info-label">等级差异</text>
-              <text class="info-value">{{item.levelGap}}</text>
-            </view>
+          <text class="status-pill">{{item.status}}</text>
+        </view>
+
+        <view class="meta-grid">
+          <view class="meta-item">
+            <text class="meta-label">类型</text>
+            <text class="meta-value">{{item.type}}</text>
+          </view>
+          <view class="meta-item">
+            <text class="meta-label">人数</text>
+            <text class="meta-value">{{item.players.length}}/{{item.maxPlayers}}</text>
+          </view>
+          <view class="meta-item">
+            <text class="meta-label">场次</text>
+            <text class="meta-value">{{item.matches && item.matches.length ? item.matches.length : item.rounds}}</text>
           </view>
         </view>
 
         <view class="match-actions">
-          <button class="action-btn view-btn" bindtap="viewMatch" data-id="{{item.id}}">查看详情</button>
-          <button class="action-btn delete-btn" bindtap="deleteMatch" data-id="{{item.id}}">删除</button>
+          <view class="primary-btn" bindtap="viewMatch" data-id="{{item.id}}">查看详情</view>
+          <view class="danger-btn" bindtap="deleteMatch" data-id="{{item.id}}">删除</view>
         </view>
       </view>
     </block>
 
     <view class="empty-state" wx:else>
-      <text class="empty-text">暂无比赛</text>
-      <text class="empty-desc">点击下方"创建比赛"标签创建新的比赛</text>
+      <text class="empty-title">暂无比赛</text>
+      <text class="empty-desc">从下方“创建比赛”开始组织一场新对阵</text>
     </view>
   </view>
-</view> 
+</view>

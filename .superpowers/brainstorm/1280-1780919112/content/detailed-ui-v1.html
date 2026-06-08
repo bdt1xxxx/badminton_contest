@@ -1,0 +1,577 @@
+<style>
+  .design-wrap {
+    display: grid;
+    gap: 24px;
+    margin-top: 22px;
+  }
+  .panel {
+    background: #fff;
+    border: 1px solid #e5e7eb;
+    border-radius: 16px;
+    padding: 18px;
+  }
+  .panel h3 {
+    margin: 0 0 14px;
+    font-size: 18px;
+    color: #111827;
+  }
+  .tokens {
+    display: grid;
+    grid-template-columns: 1.15fr 1fr 1fr;
+    gap: 16px;
+  }
+  .swatches {
+    display: grid;
+    grid-template-columns: repeat(4, 1fr);
+    gap: 10px;
+  }
+  .swatch {
+    border-radius: 12px;
+    padding: 12px;
+    min-height: 72px;
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-end;
+    color: #fff;
+    font-size: 12px;
+    font-weight: 800;
+  }
+  .swatch.light { color: #0f172a; border: 1px solid #e5e7eb; }
+  .type-spec, .component-list {
+    display: grid;
+    gap: 10px;
+  }
+  .type-row, .component-row {
+    border-radius: 12px;
+    background: #f8fafc;
+    padding: 11px 12px;
+    color: #64748b;
+    font-size: 13px;
+    line-height: 1.45;
+  }
+  .type-row b, .component-row b {
+    display: block;
+    color: #111827;
+    margin-bottom: 3px;
+  }
+  .screens {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(190px, 1fr));
+    gap: 18px;
+  }
+  .phone {
+    height: 458px;
+    border: 9px solid #111827;
+    border-radius: 32px;
+    background: #f4f7f5;
+    overflow: hidden;
+    position: relative;
+    box-shadow: 0 10px 28px rgba(15, 23, 42, .12);
+  }
+  .phone::before {
+    content: "";
+    position: absolute;
+    top: 0;
+    left: 50%;
+    transform: translateX(-50%);
+    width: 78px;
+    height: 20px;
+    background: #111827;
+    border-radius: 0 0 13px 13px;
+    z-index: 5;
+  }
+  .native-nav {
+    height: 58px;
+    background: rgba(255,255,255,.96);
+    text-align: center;
+    padding-top: 28px;
+    box-sizing: border-box;
+    font-size: 12px;
+    font-weight: 850;
+    color: #111827;
+  }
+  .body {
+    padding: 12px 12px 58px;
+    height: calc(100% - 58px);
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+  .page-title {
+    font-size: 20px;
+    font-weight: 900;
+    color: #102318;
+    line-height: 1.12;
+    margin: 2px 2px 10px;
+  }
+  .subtle {
+    color: #64748b;
+    font-size: 10px;
+    font-weight: 700;
+  }
+  .summary {
+    border-radius: 16px;
+    background: linear-gradient(135deg, #15803d, #14b8a6);
+    color: white;
+    padding: 13px;
+    margin-bottom: 10px;
+  }
+  .summary.dark {
+    background: #17212f;
+  }
+  .summary.soft {
+    background: #ecfdf5;
+    color: #14532d;
+    border: 1px solid #bbf7d0;
+  }
+  .summary b {
+    display: block;
+    font-size: 16px;
+    margin-bottom: 5px;
+  }
+  .summary span {
+    font-size: 10px;
+    opacity: .9;
+    font-weight: 700;
+  }
+  .section-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin: 13px 2px 8px;
+    color: #111827;
+    font-size: 12px;
+    font-weight: 900;
+  }
+  .section-label span:last-child {
+    color: #16a34a;
+    font-size: 10px;
+  }
+  .seg {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    background: #e8f2eb;
+    padding: 3px;
+    border-radius: 999px;
+    margin-bottom: 10px;
+    font-size: 10px;
+    font-weight: 900;
+    text-align: center;
+    color: #64748b;
+  }
+  .seg span {
+    padding: 7px 0;
+    border-radius: 999px;
+  }
+  .seg .active {
+    color: #166534;
+    background: #fff;
+    box-shadow: 0 1px 6px rgba(22, 101, 52, .12);
+  }
+  .field, .player, .list-card, .score-card, .profile-card, .tool {
+    background: #fff;
+    border: 1px solid #e5efe8;
+    border-radius: 14px;
+    box-shadow: 0 1px 0 rgba(15, 23, 42, .03);
+  }
+  .field {
+    padding: 10px 11px;
+    margin-bottom: 8px;
+  }
+  .field .label {
+    color: #64748b;
+    font-size: 9px;
+    font-weight: 800;
+    margin-bottom: 4px;
+  }
+  .field .value {
+    color: #0f172a;
+    font-size: 13px;
+    font-weight: 900;
+  }
+  .two {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 8px;
+  }
+  .player {
+    display: grid;
+    grid-template-columns: 22px 1fr auto;
+    gap: 8px;
+    align-items: center;
+    padding: 8px 9px;
+    margin-bottom: 7px;
+  }
+  .drag {
+    width: 18px;
+    height: 18px;
+    border-radius: 7px;
+    background: #f1f5f9;
+    color: #94a3b8;
+    display: grid;
+    place-items: center;
+    font-size: 10px;
+  }
+  .chip {
+    display: inline-flex;
+    border-radius: 999px;
+    padding: 4px 8px;
+    background: #dcfce7;
+    color: #166534;
+    font-size: 9px;
+    font-weight: 900;
+  }
+  .danger-chip {
+    background: #fee2e2;
+    color: #b91c1c;
+  }
+  .bottom-cta {
+    position: absolute;
+    left: 12px;
+    right: 12px;
+    bottom: 12px;
+    border-radius: 15px;
+    padding: 12px;
+    text-align: center;
+    background: #16a34a;
+    color: white;
+    font-size: 13px;
+    font-weight: 900;
+    box-shadow: 0 8px 20px rgba(22, 163, 74, .22);
+  }
+  .list-card {
+    padding: 12px;
+    margin-bottom: 10px;
+  }
+  .list-head {
+    display: flex;
+    justify-content: space-between;
+    gap: 8px;
+    align-items: center;
+    margin-bottom: 10px;
+  }
+  .list-head b {
+    color: #111827;
+    font-size: 13px;
+  }
+  .meta-grid {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 7px;
+  }
+  .meta {
+    background: #f8fafc;
+    border-radius: 10px;
+    padding: 7px;
+  }
+  .meta span {
+    display: block;
+    color: #64748b;
+    font-size: 8px;
+    margin-bottom: 4px;
+    font-weight: 800;
+  }
+  .meta b {
+    color: #111827;
+    font-size: 11px;
+  }
+  .button-row {
+    display: grid;
+    grid-template-columns: 1fr 42px;
+    gap: 8px;
+    margin-top: 10px;
+  }
+  .primary, .delete {
+    border-radius: 12px;
+    padding: 8px;
+    text-align: center;
+    font-size: 10px;
+    font-weight: 900;
+  }
+  .primary { background: #16a34a; color: #fff; }
+  .delete { background: #fee2e2; color: #b91c1c; }
+  .tab {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    background: #fff;
+    border-radius: 14px;
+    padding: 4px;
+    border: 1px solid #e5efe8;
+    margin-bottom: 10px;
+    font-size: 10px;
+    font-weight: 900;
+    text-align: center;
+    color: #64748b;
+  }
+  .tab span {
+    border-radius: 10px;
+    padding: 7px 0;
+  }
+  .tab .active {
+    background: #16a34a;
+    color: #fff;
+  }
+  .score-card {
+    overflow: hidden;
+    margin-bottom: 9px;
+  }
+  .score-top {
+    display: flex;
+    justify-content: space-between;
+    padding: 8px 10px;
+    background: #f0fdf4;
+    color: #166534;
+    font-size: 10px;
+    font-weight: 900;
+  }
+  .teams {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr;
+    gap: 8px;
+    align-items: center;
+    padding: 12px 10px;
+    text-align: center;
+    color: #111827;
+    font-size: 11px;
+    font-weight: 850;
+  }
+  .teams .vs {
+    color: #94a3b8;
+    font-size: 10px;
+  }
+  .score-row {
+    display: grid;
+    grid-template-columns: 1fr auto 1fr 1.3fr;
+    gap: 6px;
+    padding: 0 10px 10px;
+    align-items: center;
+  }
+  .score-input {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 9px;
+    padding: 7px 0;
+    text-align: center;
+    color: #64748b;
+    font-size: 10px;
+    font-weight: 800;
+  }
+  .done {
+    background: #16a34a;
+    color: #fff;
+    border-radius: 999px;
+    padding: 8px 0;
+    text-align: center;
+    font-size: 10px;
+    font-weight: 900;
+  }
+  .rank {
+    display: grid;
+    grid-template-columns: 24px 1fr auto auto;
+    gap: 8px;
+    align-items: center;
+    background: #fff;
+    border: 1px solid #e5efe8;
+    border-radius: 13px;
+    padding: 10px;
+    margin-bottom: 7px;
+    font-size: 11px;
+    font-weight: 850;
+  }
+  .rank .num {
+    color: #16a34a;
+    font-size: 14px;
+    font-weight: 950;
+  }
+  .rank .pos {
+    color: #16a34a;
+    font-weight: 950;
+  }
+  .profile-card {
+    display: grid;
+    grid-template-columns: auto 1fr;
+    gap: 12px;
+    padding: 14px;
+    align-items: center;
+    margin-bottom: 12px;
+  }
+  .avatar {
+    width: 46px;
+    height: 46px;
+    border-radius: 50%;
+    background: #dcfce7;
+    color: #15803d;
+    display: grid;
+    place-items: center;
+    font-weight: 950;
+  }
+  .tool {
+    display: flex;
+    justify-content: space-between;
+    padding: 12px;
+    margin-bottom: 8px;
+    font-size: 12px;
+    color: #111827;
+    font-weight: 850;
+  }
+  .caption {
+    text-align: center;
+    font-size: 13px;
+    font-weight: 900;
+    color: #111827;
+    margin-top: 8px;
+  }
+  .rules {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 14px;
+  }
+  .rules ul {
+    margin: 0;
+    padding-left: 18px;
+    color: #475569;
+    line-height: 1.65;
+    font-size: 14px;
+  }
+  @media (max-width: 1180px) {
+    .tokens, .rules { grid-template-columns: 1fr; }
+    .screens { grid-template-columns: repeat(2, minmax(190px, 1fr)); }
+  }
+</style>
+
+<h2>细化设计 v1</h2>
+<p class="subtitle">这版已经按微信小程序的原生导航、底部 tabBar 和现有数据结构来细化。绿色是主动作，深色只服务于比赛现场记分。</p>
+
+<div class="design-wrap">
+  <div class="panel">
+    <h3>1. 视觉规范</h3>
+    <div class="tokens">
+      <div class="swatches">
+        <div class="swatch" style="background:#16a34a">主绿<br>#16A34A</div>
+        <div class="swatch" style="background:#14b8a6">辅助青<br>#14B8A6</div>
+        <div class="swatch" style="background:#17212f">赛场深色<br>#17212F</div>
+        <div class="swatch light" style="background:#f4f7f5">背景<br>#F4F7F5</div>
+      </div>
+      <div class="type-spec">
+        <div class="type-row"><b>标题</b>36-40rpx，粗体，用于页面主任务标题</div>
+        <div class="type-row"><b>卡片标题</b>28-30rpx，粗体，用于比赛名、场次名</div>
+        <div class="type-row"><b>辅助说明</b>22-24rpx，用灰色，减少页面压力</div>
+      </div>
+      <div class="component-list">
+        <div class="component-row"><b>卡片</b>圆角 24-28rpx，边框轻、阴影弱，避免厚重</div>
+        <div class="component-row"><b>状态</b>胶囊标签表达报名中、已完成、等级差</div>
+        <div class="component-row"><b>按钮</b>主按钮满宽，危险操作降权为浅红小按钮</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h3>2. 页面细节</h3>
+    <div class="screens">
+      <div>
+        <div class="phone">
+          <div class="native-nav">创建比赛</div>
+          <div class="body">
+            <div class="page-title">创建一场<br>新比赛</div>
+            <div class="subtle">先确认赛制，再录入选手和等级</div>
+            <div class="section-label"><span>赛制</span><span>双打优先</span></div>
+            <div class="seg"><span class="active">双打</span><span>单打</span></div>
+            <div class="field"><div class="label">比赛名称</div><div class="value">周一训练局</div></div>
+            <div class="two">
+              <div class="field"><div class="label">人数</div><div class="value">8 人</div></div>
+              <div class="field"><div class="label">场地</div><div class="value">2 块</div></div>
+            </div>
+            <div class="section-label"><span>参赛选手</span><span>6/8</span></div>
+            <div class="player"><span class="drag">≡</span><span>q</span><span class="chip">Lv 3.5</span></div>
+            <div class="player"><span class="drag">≡</span><span>w</span><span class="chip">Lv 3</span></div>
+            <div class="player"><span class="drag">+</span><span style="color:#64748b">添加选手姓名</span><span class="chip">Lv 1</span></div>
+          </div>
+          <div class="bottom-cta">生成对阵</div>
+        </div>
+        <div class="caption">创建页</div>
+      </div>
+
+      <div>
+        <div class="phone">
+          <div class="native-nav">比赛列表</div>
+          <div class="body">
+            <div class="summary soft"><b>比赛总览</b><span>2 场报名中 · 28 条对阵</span></div>
+            <div class="list-card">
+              <div class="list-head"><b>周一训练局</b><span class="chip">报名中</span></div>
+              <div class="meta-grid">
+                <div class="meta"><span>类型</span><b>双打</b></div>
+                <div class="meta"><span>人数</span><b>8/8</b></div>
+                <div class="meta"><span>场次</span><b>16</b></div>
+              </div>
+              <div class="button-row"><div class="primary">查看详情</div><div class="delete">删除</div></div>
+            </div>
+            <div class="list-card">
+              <div class="list-head"><b>周末群友赛</b><span class="chip">报名中</span></div>
+              <div class="meta-grid">
+                <div class="meta"><span>类型</span><b>双打</b></div>
+                <div class="meta"><span>人数</span><b>6/8</b></div>
+                <div class="meta"><span>场次</span><b>12</b></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="caption">列表页</div>
+      </div>
+
+      <div>
+        <div class="phone">
+          <div class="native-nav">比赛详情</div>
+          <div class="body">
+            <div class="summary dark"><b>周一训练局</b><span>8 人 · 2 块场地 · 16 场 · 未完成 14</span></div>
+            <div class="tab"><span class="active">对阵</span><span>统计</span></div>
+            <div class="score-card">
+              <div class="score-top"><span>第 1 场</span><span>等级差 0.5</span></div>
+              <div class="teams"><span>q<br>w</span><span class="vs">VS</span><span>e<br>u</span></div>
+              <div class="score-row"><div class="score-input">21</div><span>:</span><div class="score-input">18</div><div class="done">完成</div></div>
+            </div>
+            <div class="score-card">
+              <div class="score-top"><span>第 2 场</span><span>等级差 0</span></div>
+              <div class="teams"><span>r<br>t</span><span class="vs">VS</span><span>y<br>i</span></div>
+              <div class="score-row"><div class="score-input">分数</div><span>:</span><div class="score-input">分数</div><div class="done">完成</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="caption">详情 / 记分</div>
+      </div>
+
+      <div>
+        <div class="phone">
+          <div class="native-nav">我的</div>
+          <div class="body">
+            <div class="profile-card">
+              <div class="avatar">微</div>
+              <div><div style="font-size:14px;font-weight:900;color:#111827">微信用户</div><div class="subtle">本地数据管理</div></div>
+            </div>
+            <div class="summary soft"><b>本机数据</b><span>2 场比赛 · 28 条对阵 · 8 名选手</span></div>
+            <div class="tool"><span>导出数据</span><span>›</span></div>
+            <div class="tool"><span>导入数据</span><span>›</span></div>
+            <div class="tool"><span style="color:#dc2626">清除数据</span><span>›</span></div>
+          </div>
+        </div>
+        <div class="caption">我的页</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="panel">
+    <h3>3. 交互规则</h3>
+    <div class="rules">
+      <ul>
+        <li>创建页默认选择双打；单打入口保留，但用轻提示说明当前主要优化双打。</li>
+        <li>选手输入从表格感改成行列表：姓名是主体，等级是右侧胶囊选择器。</li>
+        <li>“打乱顺序”放进确认生成弹窗，和等级差、局数一起归为排阵策略。</li>
+        <li>生成按钮固定在底部，选手较多时不需要滚回底部找按钮。</li>
+      </ul>
+      <ul>
+        <li>比赛详情默认进入“对阵”，顶部摘要展示未完成数，服务现场操作。</li>
+        <li>完成场次自动下沉；已完成按钮变为“修改”，颜色从绿改为浅灰或描边。</li>
+        <li>统计页保留榜单感：前 3 名可用更强排名数字，但不做花哨奖牌图形。</li>
+        <li>删除、清除数据全部降级为浅红，并保留二次确认，避免误触。</li>
+      </ul>
+    </div>
+  </div>
+</div>

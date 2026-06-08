@@ -1,23 +1,34 @@
-<view class="container">
-  <view class="profile-header">
-    <view class="profile-content">
+<view class="container profile-page">
+  <view class="page-content">
+    <view class="profile-card">
       <image class="avatar" src="{{userInfo.avatar}}" mode="aspectFill"></image>
-      <view class="user-info">
+      <view class="profile-info">
         <text class="nickname">{{userInfo.nickname}}</text>
-        
-        <!-- 当用户未授权时显示获取用户信息按钮 -->
-        <button wx:if="{{!hasUserInfo}}" 
-                class="get-userinfo-btn" 
-                bindtap="getUserProfile">
+        <button wx:if="{{!hasUserInfo}}" class="get-userinfo-btn" bindtap="getUserProfile">
           获取微信头像和昵称
         </button>
+        <text wx:else class="profile-subtitle">本地比赛数据管理</text>
       </view>
     </view>
-  </view>
 
-  <view class="action-section">
-    <button class="action-btn export-btn" bindtap="exportData">导出数据</button>
-    <button class="action-btn import-btn" bindtap="importData">导入数据</button>
-    <button class="action-btn clear-btn" bindtap="clearData">清除数据</button>
+    <view class="summary-card">
+      <text class="summary-title">本机数据</text>
+      <text class="summary-subtitle">{{dataSummary.matchCount}} 场比赛 · {{dataSummary.generatedMatches}} 条对阵 · {{dataSummary.playerCount}} 名选手</text>
+    </view>
+
+    <view class="tool-list">
+      <button class="tool-row" bindtap="exportData">
+        <text>导出数据</text>
+        <text class="tool-arrow">›</text>
+      </button>
+      <button class="tool-row" bindtap="importData">
+        <text>导入数据</text>
+        <text class="tool-arrow">›</text>
+      </button>
+      <button class="tool-row danger" bindtap="clearData">
+        <text>清除数据</text>
+        <text class="tool-arrow">›</text>
+      </button>
+    </view>
   </view>
-</view> 
+</view>
