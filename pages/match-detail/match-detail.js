@@ -2,6 +2,8 @@ Page({
   data: {
     match: null,
     matches: [],
+    roundGroups: [],
+    displayCourtCount: 1,
     playerCounts: {},
     byeCounts: {},
     activeTab: 'details', // 默认显示比赛详情tab
@@ -26,6 +28,27 @@ Page({
       completed: completed,
       incomplete: matches.length - completed
     };
+  },
+
+  getDisplayCourtCount: function(match) {
+    const courtCount = parseInt(match && match.courtCount, 10);
+    // 历史数据可能没有 courtCount，项目默认场地数为 2
+    return courtCount === 1 ? 1 : 2;
+  },
+
+  buildRoundGroups: function(matches, courtCount) {
+    if (courtCount !== 2) {
+      return [];
+    }
+
+    const groups = [];
+    for (let i = 0; i < matches.length; i += 2) {
+      groups.push({
+        roundNumber: Math.floor(i / 2) + 1,
+        matches: matches.slice(i, i + 2)
+      });
+    }
+    return groups;
   },
 
   // 加载比赛详情
@@ -62,6 +85,7 @@ Page({
         
         // 根据完成状态排序对阵
         const sortedMatches = this.sortMatchesByCompletion(matchesWithStatus);
+        const displayCourtCount = this.getDisplayCourtCount(match);
         
         // 初始化玩家统计数据
         const playerStats = this.initializePlayerStats(match.players || []);
@@ -71,6 +95,8 @@ Page({
           matches: sortedMatches,
           playerCounts: match.playerCounts || {},
           byeCounts: match.byeCounts || {},
+          displayCourtCount: displayCourtCount,
+          roundGroups: this.buildRoundGroups(sortedMatches, displayCourtCount),
           playerStats: playerStats,
           matchSummary: this.buildMatchSummary(sortedMatches)
         });
@@ -133,7 +159,8 @@ Page({
     });
     
     this.setData({
-      matches: matches
+      matches: matches,
+      roundGroups: this.buildRoundGroups(matches, this.data.displayCourtCount)
     });
   },
 
@@ -157,6 +184,7 @@ Page({
     
     this.setData({
       matches: sortedMatches,
+      roundGroups: this.buildRoundGroups(sortedMatches, this.data.displayCourtCount),
       matchSummary: this.buildMatchSummary(sortedMatches)
     }, () => {
       console.log('页面数据更新完成，当前matches:', this.data.matches);
@@ -239,7 +267,8 @@ Page({
       
       // 重新设置数据以触发页面更新
       this.setData({
-        matches: [...currentMatches]
+        matches: [...currentMatches],
+        roundGroups: this.buildRoundGroups(currentMatches, this.data.displayCourtCount)
       }, () => {
         console.log('强制刷新完成，当前数据:', this.data.matches);
       });

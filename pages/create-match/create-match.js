@@ -212,6 +212,7 @@ Page({
         time: new Date().toISOString().slice(11, 16),
         location: '待定',
         type: this.data.matchType,
+        courtCount: this.data.courtCount,
         maxPlayers: this.data.maxPlayers,
         players: this.data.players,
         levelGap: this.data.levelGap,

@@ -15,33 +15,74 @@
     </view>
 
     <view class="matches-section" wx:if="{{matches.length > 0 && activeTab === 'details'}}">
-      <view class="match-card {{item.completed ? 'completed' : ''}}" wx:for="{{matches}}" wx:key="id">
-        <view class="match-card-header">
-          <text class="round-info">第{{item.id}}场</text>
-          <text class="level-pill">等级差 {{item.levelDiff}}</text>
-        </view>
+      <block wx:if="{{displayCourtCount === 2}}">
+        <view class="round-card" wx:for="{{roundGroups}}" wx:key="roundNumber">
+          <view class="round-card-header">
+            <text class="round-title">第{{item.roundNumber}}轮</text>
+            <text class="round-subtitle">2块场地同时进行</text>
+          </view>
 
-        <view class="teams-row">
-          <view class="team">
-            <text class="player-name">{{item.team1.player1.name}}</text>
-            <text class="player-name">{{item.team1.player2.name}}</text>
-          </view>
-          <text class="vs-text">VS</text>
-          <view class="team">
-            <text class="player-name">{{item.team2.player1.name}}</text>
-            <text class="player-name">{{item.team2.player2.name}}</text>
-          </view>
-        </view>
+          <view class="round-match {{item2.completed ? 'completed' : ''}}" wx:for="{{item.matches}}" wx:key="id" wx:for-item="item2">
+            <view class="match-card-header">
+              <text class="round-info">第{{item2.id}}场</text>
+              <text class="level-pill">等级差 {{item2.levelDiff}}</text>
+            </view>
 
-        <view class="score-row">
-          <input class="score-input" placeholder="分数" value="{{item.team1.score}}" disabled="{{item.completed}}" data-match-id="{{item.id}}" data-team="team1" bindinput="onScoreInput" />
-          <text class="score-separator">:</text>
-          <input class="score-input" placeholder="分数" value="{{item.team2.score}}" disabled="{{item.completed}}" data-match-id="{{item.id}}" data-team="team2" bindinput="onScoreInput" />
-          <view class="complete-btn {{item.completed ? 'modify' : ''}}" bindtap="toggleComplete" data-match-id="{{item.id}}">
-            {{item.completed ? '修改' : '完成'}}
+            <view class="teams-row">
+              <view class="team">
+                <text class="player-name">{{item2.team1.player1.name}}</text>
+                <text class="player-name">{{item2.team1.player2.name}}</text>
+              </view>
+              <text class="vs-text">VS</text>
+              <view class="team">
+                <text class="player-name">{{item2.team2.player1.name}}</text>
+                <text class="player-name">{{item2.team2.player2.name}}</text>
+              </view>
+            </view>
+
+            <view class="score-row">
+              <input class="score-input" placeholder="分数" value="{{item2.team1.score}}" disabled="{{item2.completed}}" data-match-id="{{item2.id}}" data-team="team1" bindinput="onScoreInput" />
+              <text class="score-separator">:</text>
+              <input class="score-input" placeholder="分数" value="{{item2.team2.score}}" disabled="{{item2.completed}}" data-match-id="{{item2.id}}" data-team="team2" bindinput="onScoreInput" />
+              <view class="complete-btn {{item2.completed ? 'modify' : ''}}" bindtap="toggleComplete" data-match-id="{{item2.id}}">
+                {{item2.completed ? '修改' : '完成'}}
+              </view>
+            </view>
+
+            <view class="round-divider" wx:if="{{index !== item.matches.length - 1}}"></view>
           </view>
         </view>
-      </view>
+      </block>
+
+      <block wx:else>
+        <view class="match-card {{item.completed ? 'completed' : ''}}" wx:for="{{matches}}" wx:key="id">
+          <view class="match-card-header">
+            <text class="round-info">第{{item.id}}场</text>
+            <text class="level-pill">等级差 {{item.levelDiff}}</text>
+          </view>
+
+          <view class="teams-row">
+            <view class="team">
+              <text class="player-name">{{item.team1.player1.name}}</text>
+              <text class="player-name">{{item.team1.player2.name}}</text>
+            </view>
+            <text class="vs-text">VS</text>
+            <view class="team">
+              <text class="player-name">{{item.team2.player1.name}}</text>
+              <text class="player-name">{{item.team2.player2.name}}</text>
+            </view>
+          </view>
+
+          <view class="score-row">
+            <input class="score-input" placeholder="分数" value="{{item.team1.score}}" disabled="{{item.completed}}" data-match-id="{{item.id}}" data-team="team1" bindinput="onScoreInput" />
+            <text class="score-separator">:</text>
+            <input class="score-input" placeholder="分数" value="{{item.team2.score}}" disabled="{{item.completed}}" data-match-id="{{item.id}}" data-team="team2" bindinput="onScoreInput" />
+            <view class="complete-btn {{item.completed ? 'modify' : ''}}" bindtap="toggleComplete" data-match-id="{{item.id}}">
+              {{item.completed ? '修改' : '完成'}}
+            </view>
+          </view>
+        </view>
+      </block>
     </view>
 
     <view class="statistics-section" wx:if="{{activeTab === 'statistics'}}">
