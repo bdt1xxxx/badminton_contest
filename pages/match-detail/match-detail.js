@@ -3,6 +3,7 @@ Page({
     match: null,
     matches: [],
     roundGroups: [],
+    completedRoundGroups: [],
     displayCourtCount: 1,
     playerCounts: {},
     byeCounts: {},
@@ -36,19 +37,89 @@ Page({
     return courtCount === 1 ? 1 : 2;
   },
 
-  buildRoundGroups: function(matches, courtCount) {
-    if (courtCount !== 2) {
-      return [];
+  getMatchPlayers: function(match) {
+    const players = [];
+    if (match && match.team1 && match.team1.player1 && match.team1.player1.name) players.push(match.team1.player1.name);
+    if (match && match.team1 && match.team1.player2 && match.team1.player2.name) players.push(match.team1.player2.name);
+    if (match && match.team2 && match.team2.player1 && match.team2.player1.name) players.push(match.team2.player1.name);
+    if (match && match.team2 && match.team2.player2 && match.team2.player2.name) players.push(match.team2.player2.name);
+    return players;
+  },
+
+  enrichRoundConflict: function(roundMatches) {
+    if (roundMatches.length <= 1) {
+      return roundMatches.map(match => ({
+        ...match,
+        uiConflict: !!match.hasConflict
+      }));
     }
 
-    const groups = [];
-    for (let i = 0; i < matches.length; i += 2) {
-      groups.push({
+    const playerSets = roundMatches.map(match => new Set(this.getMatchPlayers(match)));
+    const conflictIndexes = {};
+
+    for (let i = 0; i < playerSets.length; i++) {
+      for (let j = i + 1; j < playerSets.length; j++) {
+        const hasOverlap = [...playerSets[i]].some(name => playerSets[j].has(name));
+        if (hasOverlap) {
+          conflictIndexes[i] = true;
+          conflictIndexes[j] = true;
+        }
+      }
+    }
+
+    return roundMatches.map((match, index) => ({
+      ...match,
+      uiConflict: !!conflictIndexes[index] || !!match.hasConflict
+    }));
+  },
+
+  buildRoundGroups: function(matches, courtCount) {
+    if (courtCount !== 2) {
+      return {
+        roundGroups: [],
+        completedRoundGroups: []
+      };
+    }
+
+    // 双场地轮次分组必须固定，不能被完成状态排序打散
+    const orderedMatches = [...matches].sort((a, b) => a.id - b.id);
+    const grouped = [];
+    for (let i = 0; i < orderedMatches.length; i += 2) {
+      const roundMatches = this.enrichRoundConflict(orderedMatches.slice(i, i + 2));
+      grouped.push({
         roundNumber: Math.floor(i / 2) + 1,
-        matches: matches.slice(i, i + 2)
+        matches: roundMatches
       });
     }
-    return groups;
+
+    const roundGroups = [];
+    const completedRoundGroups = [];
+
+    grouped.forEach(group => {
+      const incompleteMatches = group.matches.filter(match => !match.completed);
+      const completedMatches = group.matches.filter(match => match.completed);
+
+      if (incompleteMatches.length > 0) {
+        roundGroups.push({
+          roundNumber: group.roundNumber,
+          hasConflict: group.matches.some(match => !!match.uiConflict),
+          matches: incompleteMatches
+        });
+      }
+
+      if (completedMatches.length > 0) {
+        completedRoundGroups.push({
+          roundNumber: group.roundNumber,
+          hasConflict: group.matches.some(match => !!match.uiConflict),
+          matches: completedMatches
+        });
+      }
+    });
+
+    return {
+      roundGroups: roundGroups,
+      completedRoundGroups: completedRoundGroups
+    };
   },
 
   // 加载比赛详情
@@ -84,8 +155,11 @@ Page({
         });
         
         // 根据完成状态排序对阵
-        const sortedMatches = this.sortMatchesByCompletion(matchesWithStatus);
         const displayCourtCount = this.getDisplayCourtCount(match);
+        const sortedMatches = displayCourtCount === 2
+          ? [...matchesWithStatus]
+          : this.sortMatchesByCompletion(matchesWithStatus);
+        const groupedRounds = this.buildRoundGroups(sortedMatches, displayCourtCount);
         
         // 初始化玩家统计数据
         const playerStats = this.initializePlayerStats(match.players || []);
@@ -96,7 +170,8 @@ Page({
           playerCounts: match.playerCounts || {},
           byeCounts: match.byeCounts || {},
           displayCourtCount: displayCourtCount,
-          roundGroups: this.buildRoundGroups(sortedMatches, displayCourtCount),
+          roundGroups: groupedRounds.roundGroups,
+          completedRoundGroups: groupedRounds.completedRoundGroups,
           playerStats: playerStats,
           matchSummary: this.buildMatchSummary(sortedMatches)
         });
@@ -157,10 +232,12 @@ Page({
       }
       return m;
     });
+    const groupedRounds = this.buildRoundGroups(matches, this.data.displayCourtCount);
     
     this.setData({
       matches: matches,
-      roundGroups: this.buildRoundGroups(matches, this.data.displayCourtCount)
+      roundGroups: groupedRounds.roundGroups,
+      completedRoundGroups: groupedRounds.completedRoundGroups
     });
   },
 
@@ -178,13 +255,17 @@ Page({
       return m;
     });
     
-    // 重新排序：已完成的比赛移动到未完成比赛的下面
-    const sortedMatches = this.sortMatchesByCompletion(matches);
+    // 双场地保持原始轮次顺序；单场地沿用完成状态排序
+    const sortedMatches = this.data.displayCourtCount === 2
+      ? [...matches]
+      : this.sortMatchesByCompletion(matches);
+    const groupedRounds = this.buildRoundGroups(sortedMatches, this.data.displayCourtCount);
     console.log('排序后的比赛数据:', sortedMatches);
     
     this.setData({
       matches: sortedMatches,
-      roundGroups: this.buildRoundGroups(sortedMatches, this.data.displayCourtCount),
+      roundGroups: groupedRounds.roundGroups,
+      completedRoundGroups: groupedRounds.completedRoundGroups,
       matchSummary: this.buildMatchSummary(sortedMatches)
     }, () => {
       console.log('页面数据更新完成，当前matches:', this.data.matches);
@@ -264,11 +345,13 @@ Page({
     setTimeout(() => {
       const currentMatches = this.data.matches;
       console.log('强制刷新前的数据:', currentMatches);
+      const groupedRounds = this.buildRoundGroups(currentMatches, this.data.displayCourtCount);
       
       // 重新设置数据以触发页面更新
       this.setData({
         matches: [...currentMatches],
-        roundGroups: this.buildRoundGroups(currentMatches, this.data.displayCourtCount)
+        roundGroups: groupedRounds.roundGroups,
+        completedRoundGroups: groupedRounds.completedRoundGroups
       }, () => {
         console.log('强制刷新完成，当前数据:', this.data.matches);
       });

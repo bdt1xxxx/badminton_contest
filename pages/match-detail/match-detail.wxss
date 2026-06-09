@@ -85,10 +85,28 @@
   border-bottom: 1rpx solid #bfd4ff;
 }
 
+.round-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12rpx;
+}
+
 .round-title {
   font-size: 30rpx;
   font-weight: 850;
   color: #1e3a8a;
+}
+
+.round-conflict-tag {
+  display: inline-flex;
+  align-items: center;
+  height: 40rpx;
+  padding: 0 12rpx;
+  border-radius: 999rpx;
+  background: #fee2e2;
+  color: #b91c1c;
+  font-size: 20rpx;
+  font-weight: 800;
 }
 
 .round-subtitle {
@@ -98,6 +116,26 @@
 
 .round-match {
   background: #ffffff;
+}
+
+.completed-section {
+  margin-top: 8rpx;
+}
+
+.completed-section-title {
+  display: block;
+  margin: 10rpx 4rpx 16rpx;
+  font-size: 24rpx;
+  font-weight: 800;
+  color: #64748b;
+}
+
+.completed-round-card {
+  opacity: 0.76;
+}
+
+.round-match.completed {
+  opacity: 0.9;
 }
 
 .match-card {
@@ -127,6 +165,24 @@
   font-size: 28rpx;
   font-weight: 850;
   color: #14532d;
+}
+
+.round-info-wrap {
+  display: flex;
+  align-items: center;
+  gap: 10rpx;
+}
+
+.match-conflict-tag {
+  display: inline-flex;
+  align-items: center;
+  height: 34rpx;
+  padding: 0 10rpx;
+  border-radius: 999rpx;
+  background: #fee2e2;
+  color: #b91c1c;
+  font-size: 20rpx;
+  font-weight: 800;
 }
 
 .level-pill {

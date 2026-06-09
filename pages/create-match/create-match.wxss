@@ -1,7 +1,7 @@
 .create-page {
   min-height: 100vh;
   background: #f4f7f5;
-  padding-bottom: 132rpx;
+  padding-bottom: 24rpx;
 }
 
 .page-content {
@@ -168,13 +168,8 @@
 }
 
 .submit-section {
-  position: fixed;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  padding: 18rpx 28rpx calc(18rpx + env(safe-area-inset-bottom));
-  background: rgba(244, 247, 245, 0.94);
-  border-top: 1rpx solid #e5efe8;
+  padding: 0 28rpx calc(24rpx + env(safe-area-inset-bottom));
+  margin-top: 4rpx;
   box-sizing: border-box;
 }
 
