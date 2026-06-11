@@ -7,6 +7,14 @@
   padding: 28rpx;
 }
 
+.entry-actions {
+  margin-bottom: 20rpx;
+}
+
+.entry-btn {
+  height: 84rpx;
+}
+
 .summary-card,
 .match-card {
   background: #ffffff;

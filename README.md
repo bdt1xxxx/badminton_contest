@@ -43,8 +43,18 @@ pages/
 ## 使用方法
 
 1. 在微信开发者工具中导入项目
-2. 编译并预览
-3. 使用底部标签栏切换不同功能页面
+2. 开启云开发并创建云环境
+3. 创建集合：`matches`、`match_members`、`match_invites`
+4. 部署云函数：`createMatch`、`joinMatch`、`listMyMatches`、`getMatchDetail`、`updateScore`
+5. 编译并预览
+6. 使用底部标签栏切换不同功能页面
+
+## 云端分享与权限（方案 B）
+
+- 创建者创建比赛后会生成邀请码
+- 参赛者通过“加入比赛”页输入 `matchId + inviteCode + participantId` 绑定身份
+- 只有已绑定的参赛者可查看比赛详情
+- 比分更新后，参赛者通过列表页“手动刷新”拉取最新数据
 
 ## 数据存储
 

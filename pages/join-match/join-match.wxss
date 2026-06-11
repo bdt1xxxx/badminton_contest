@@ -1,0 +1,28 @@
+.container {
+  padding: 24rpx;
+}
+
+.card {
+  background: #ffffff;
+  border-radius: 16rpx;
+  padding: 24rpx;
+  box-shadow: 0 8rpx 24rpx rgba(0, 0, 0, 0.06);
+}
+
+.title {
+  font-size: 34rpx;
+  font-weight: 600;
+  margin-bottom: 20rpx;
+}
+
+.input {
+  border: 1rpx solid #dddddd;
+  border-radius: 10rpx;
+  padding: 16rpx;
+  margin-bottom: 16rpx;
+}
+
+.submit {
+  background: #16a34a;
+  color: #ffffff;
+}

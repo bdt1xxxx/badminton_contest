@@ -1,11 +1,18 @@
 <view class="container list-page">
   <view class="page-content">
+    <view class="entry-actions">
+      <view class="primary-btn entry-btn" bindtap="goJoinMatch">加入比赛</view>
+    </view>
+
     <view class="summary-card">
       <view>
         <text class="summary-title">比赛总览</text>
         <text class="summary-subtitle">{{summary.total}} 场比赛 · {{summary.generatedMatches}} 条对阵</text>
       </view>
-      <view class="summary-pill">{{summary.active}} 进行中</view>
+      <view>
+        <view class="summary-pill">{{summary.active}} 进行中</view>
+        <view class="primary-btn" bindtap="manualRefresh">{{isRefreshing ? '刷新中...' : '手动刷新'}}</view>
+      </view>
     </view>
 
     <block wx:if="{{matches.length > 0}}">

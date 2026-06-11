@@ -1,6 +1,10 @@
+const { callCloud } = require('../../utils/cloud-api');
+
 Page({
   data: {
     matches: [],
+    cloudEnabled: true,
+    isRefreshing: false,
     summary: {
       total: 0,
       active: 0,
@@ -9,11 +13,11 @@ Page({
   },
 
   onLoad: function() {
-    this.loadMatches();
+    this.refreshMatches();
   },
 
   onShow: function() {
-    this.loadMatches();
+    this.refreshMatches();
   },
 
   buildSummary: function(matches) {
@@ -26,42 +30,53 @@ Page({
     };
   },
 
-  // 加载比赛数据
+  getLocalMatches: function() {
+    const matches = wx.getStorageSync('matches') || [];
+    matches.sort((a, b) => {
+      const timeA = new Date(a.createTime || a.id).getTime();
+      const timeB = new Date(b.createTime || b.id).getTime();
+      return timeB - timeA;
+    });
+    return matches;
+  },
+
+  applyMatches: function(matches) {
+    this.setData({
+      matches: matches,
+      summary: this.buildSummary(matches)
+    });
+  },
+
   loadMatches: function() {
     try {
-      console.log('开始加载比赛数据...');
-      let matches = wx.getStorageSync('matches') || [];
-      
-      console.log('原始比赛数据:', matches);
-      
-      // 按创建时间从新到旧排序（从上到下，最新的在最上面）
-      matches.sort((a, b) => {
-        const timeA = new Date(a.createTime || a.id).getTime();
-        const timeB = new Date(b.createTime || b.id).getTime();
-        console.log(`比较: ${a.name}(${timeA}) vs ${b.name}(${timeB})`);
-        return timeB - timeA; // 从新到旧（从上到下）
-      });
-      
-      console.log('排序后的比赛数据:', matches);
-      console.log('比赛数量:', matches.length);
-      
-      // 检查每个比赛的createTime字段
-      matches.forEach((match, index) => {
-        console.log(`比赛${index + 1}: ${match.name}, createTime: ${match.createTime}, id: ${match.id}`);
-        console.log(`createTime类型: ${typeof match.createTime}`);
-        if (match.createTime) {
-          console.log(`解析后的时间: ${new Date(match.createTime)}`);
-        }
-      });
-      
-      this.setData({
-        matches: matches,
-        summary: this.buildSummary(matches)
-      });
-      
-      console.log('页面数据更新完成，当前matches:', this.data.matches);
+      this.applyMatches(this.getLocalMatches());
     } catch (e) {
       console.error('加载比赛数据失败:', e);
+    }
+  },
+
+  refreshMatches: async function() {
+    if (this.data.isRefreshing) return;
+    this.setData({ isRefreshing: true });
+    try {
+      const res = await callCloud('listMyMatches');
+      if (res && res.result && res.result.ok && Array.isArray(res.result.matches)) {
+        const cloudMatches = res.result.matches;
+        const localMatches = this.getLocalMatches();
+        if (cloudMatches.length === 0 && localMatches.length > 0) {
+          this.applyMatches(localMatches);
+          return;
+        }
+        this.applyMatches(cloudMatches);
+        wx.setStorageSync('matches', cloudMatches);
+        return;
+      }
+      this.loadMatches();
+    } catch (error) {
+      this.setData({ cloudEnabled: false });
+      this.loadMatches();
+    } finally {
+      this.setData({ isRefreshing: false });
     }
   },
 
@@ -103,6 +118,16 @@ Page({
           }
         }
       }
+    });
+  },
+
+  manualRefresh: function() {
+    this.refreshMatches();
+  },
+
+  goJoinMatch: function() {
+    wx.navigateTo({
+      url: '/pages/join-match/join-match'
     });
   },
 

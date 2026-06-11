@@ -1,3 +1,5 @@
+const { callCloud } = require('../../utils/cloud-api');
+
 Page({
   data: {
     matchName: '',
@@ -185,8 +187,27 @@ Page({
     });
   },
 
+  persistMatchToCloud: async function(match) {
+    try {
+      const res = await callCloud('createMatch', match);
+      const result = res && res.result ? res.result : null;
+      if (!result || !result.ok) {
+        throw new Error((result && result.message) || 'cloud create failed');
+      }
+      return result;
+    } catch (error) {
+      console.warn('云端创建比赛失败，已保留本地数据:', error);
+      wx.showToast({
+        title: '云端保存失败，仅本地可见',
+        icon: 'none',
+        duration: 2200
+      });
+      return null;
+    }
+  },
+
   // 创建比赛
-  createMatch: function () {
+  createMatch: async function () {
     try {
       console.log('开始创建比赛...');
       console.log('比赛数据:', {
@@ -235,6 +256,7 @@ Page({
       console.log('添加新比赛后的列表:', storedMatches);
 
       wx.setStorageSync('matches', storedMatches);
+      const cloudResult = await this.persistMatchToCloud(match);
 
       // 验证保存是否成功
       const savedMatches = wx.getStorageSync('matches');
@@ -243,6 +265,13 @@ Page({
       console.log('比赛保存成功:', match);
 
       this.showTips('比赛创建成功');
+      if (cloudResult && cloudResult.inviteCode) {
+        wx.showModal({
+          title: '邀请码',
+          content: `分享给参赛者的邀请码：${cloudResult.inviteCode}`,
+          showCancel: false
+        });
+      }
 
       // 重置表单和隐藏确认框
       this.setData({

@@ -4,6 +4,7 @@
     "pages/create-match/create-match",
     "pages/match-list/match-list",
     "pages/match-detail/match-detail",
+    "pages/join-match/join-match",
     "pages/profile/profile",
     "pages/logs/logs"
   ],

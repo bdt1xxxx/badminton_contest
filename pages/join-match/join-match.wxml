@@ -1,0 +1,11 @@
+<view class="container">
+  <view class="card">
+    <view class="title">加入比赛</view>
+
+    <input class="input" placeholder="比赛ID" value="{{matchId}}" bindinput="onMatchIdInput" />
+    <input class="input" placeholder="邀请码" value="{{inviteCode}}" bindinput="onInviteCodeInput" />
+    <input class="input" placeholder="参赛者ID（或姓名）" value="{{participantId}}" bindinput="onParticipantIdInput" />
+
+    <button class="submit" bindtap="onSubmit">确认绑定</button>
+  </view>
+</view>

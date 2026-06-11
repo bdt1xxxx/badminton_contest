@@ -1,4 +1,16 @@
-Page({
+const { callCloud } = require('../../utils/cloud-api');
+
+function buildUpdateScorePayload(matchId, roundIndex, matchIndex, score, localMatchId) {
+  return {
+    matchId: matchId,
+    roundIndex: roundIndex,
+    matchIndex: matchIndex,
+    score: score,
+    localMatchId: localMatchId
+  };
+}
+
+const pageDefinition = {
   data: {
     match: null,
     matches: [],
@@ -18,7 +30,7 @@ Page({
   },
 
   onLoad: function(options) {
-    const matchId = parseInt(options.id);
+    const matchId = options.id;
     this.loadMatchDetail(matchId);
   },
 
@@ -123,10 +135,21 @@ Page({
   },
 
   // 加载比赛详情
-  loadMatchDetail: function(matchId) {
+  loadMatchDetail: async function(matchId) {
     try {
+      try {
+        const cloudRes = await callCloud('getMatchDetail', { matchId: String(matchId) });
+        if (cloudRes && cloudRes.result && cloudRes.result.ok && cloudRes.result.match) {
+          const cloudMatch = cloudRes.result.match;
+          this.applyMatchData(cloudMatch);
+          return;
+        }
+      } catch (error) {
+        console.warn('云端加载失败，回退本地:', error);
+      }
+
       const matches = wx.getStorageSync('matches') || [];
-      const match = matches.find(m => m.id === matchId);
+      const match = matches.find(m => String(m.id) === String(matchId));
       
       if (match) {
         console.log('加载的比赛数据:', match);
@@ -144,37 +167,7 @@ Page({
           return;
         }
         
-        // 为每个对阵添加completed状态，保持已保存的状态，并确保数据完整性
-        const matchesWithStatus = (match.matches || []).map(m => {
-          // 确保每个对阵都有必要的字段
-          const enhancedMatch = {
-            ...m,
-            completed: m.completed || false
-          };
-          return enhancedMatch;
-        });
-        
-        // 根据完成状态排序对阵
-        const displayCourtCount = this.getDisplayCourtCount(match);
-        const sortedMatches = displayCourtCount === 2
-          ? [...matchesWithStatus]
-          : this.sortMatchesByCompletion(matchesWithStatus);
-        const groupedRounds = this.buildRoundGroups(sortedMatches, displayCourtCount);
-        
-        // 初始化玩家统计数据
-        const playerStats = this.initializePlayerStats(match.players || []);
-        
-        this.setData({
-          match: match,
-          matches: sortedMatches,
-          playerCounts: match.playerCounts || {},
-          byeCounts: match.byeCounts || {},
-          displayCourtCount: displayCourtCount,
-          roundGroups: groupedRounds.roundGroups,
-          completedRoundGroups: groupedRounds.completedRoundGroups,
-          playerStats: playerStats,
-          matchSummary: this.buildMatchSummary(sortedMatches)
-        });
+        this.applyMatchData(match);
       } else {
         wx.showToast({
           title: '比赛不存在',
@@ -189,6 +182,31 @@ Page({
         icon: 'none'
       });
     }
+  },
+
+  applyMatchData: function(match) {
+    const matchesWithStatus = (match.matches || []).map(m => ({
+      ...m,
+      completed: m.completed || false
+    }));
+    const displayCourtCount = this.getDisplayCourtCount(match);
+    const sortedMatches = displayCourtCount === 2
+      ? [...matchesWithStatus]
+      : this.sortMatchesByCompletion(matchesWithStatus);
+    const groupedRounds = this.buildRoundGroups(sortedMatches, displayCourtCount);
+    const playerStats = this.initializePlayerStats(match.players || []);
+
+    this.setData({
+      match: match,
+      matches: sortedMatches,
+      playerCounts: match.playerCounts || {},
+      byeCounts: match.byeCounts || {},
+      displayCourtCount: displayCourtCount,
+      roundGroups: groupedRounds.roundGroups,
+      completedRoundGroups: groupedRounds.completedRoundGroups,
+      playerStats: playerStats,
+      matchSummary: this.buildMatchSummary(sortedMatches)
+    });
   },
 
   // 初始化玩家统计数据
@@ -242,7 +260,7 @@ Page({
   },
 
   // 切换完成/修改状态
-  toggleComplete: function(e) {
+  toggleComplete: async function(e) {
     const matchId = e.currentTarget.dataset.matchId;
     console.log('点击完成按钮，比赛ID:', matchId);
     console.log('排序前的比赛数据:', this.data.matches);
@@ -276,6 +294,11 @@ Page({
     
     // 保存数据到本地存储
     this.saveMatchData(sortedMatches);
+
+    const changedMatch = sortedMatches.find(m => m.id === matchId);
+    if (changedMatch && changedMatch.completed) {
+      await this.pushScoreToCloud(changedMatch);
+    }
     
     // 显示提示
     const match = sortedMatches.find(m => m.id === matchId);
@@ -289,6 +312,28 @@ Page({
         title: '已切换到修改模式',
         icon: 'success'
       });
+    }
+  },
+
+  pushScoreToCloud: async function(matchItem) {
+    if (!this.data.match) return;
+    const roundIndex = typeof matchItem.roundIndex === 'number' ? matchItem.roundIndex : 0;
+    const matchIndex = typeof matchItem.matchIndex === 'number' ? matchItem.matchIndex : (matchItem.id || 0);
+    const score = {
+      team1: parseInt(matchItem.team1 && matchItem.team1.score, 10) || 0,
+      team2: parseInt(matchItem.team2 && matchItem.team2.score, 10) || 0
+    };
+    const payload = buildUpdateScorePayload(
+      String(this.data.match._id || this.data.match.id),
+      roundIndex,
+      matchIndex,
+      score,
+      matchItem.id
+    );
+    try {
+      await callCloud('updateScore', payload);
+    } catch (error) {
+      console.warn('上传比分失败，保留本地结果:', error);
     }
   },
 
@@ -452,4 +497,12 @@ Page({
     };
     return colorMap[status] || '#999999';
   }
-}); 
+};
+
+if (typeof Page === 'function') {
+  Page(pageDefinition);
+}
+
+module.exports = {
+  buildUpdateScorePayload
+};
