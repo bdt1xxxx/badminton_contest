@@ -121,6 +121,23 @@ Generated doubles matches use this shape:
 }
 ```
 
+Cloud sharing fields (new):
+
+```js
+{
+  matchId: string,        // 云端唯一ID，创建时由云函数生成
+  ownerOpenId: string,    // 创建者 openId
+  updatedAt: number,      // 服务器时间戳
+  version: number | null, // 可选版本号，更新时递增
+  isEditable: boolean     // 仅本地运行时字段，不入云
+}
+```
+
+Compatibility:
+
+- 历史数据可能没有 `matchId/ownerOpenId/updatedAt/version`，此类记录默认本地模式。
+- 本地删除为优先策略；创建者云端删除失败时允许暂时残留，后续再清理。
+
 Important compatibility notes:
 
 - `match-detail` expects `match.rounds` to exist and shows an error if it is missing.

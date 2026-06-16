@@ -1,3 +1,10 @@
+const {
+  callCloudFunction,
+  getLocalMatches,
+  normalizeMatchRecord,
+  removeLocalMatch
+} = require('../../utils/cloud-match');
+
 Page({
   data: {
     matches: [],
@@ -30,7 +37,7 @@ Page({
   loadMatches: function() {
     try {
       console.log('开始加载比赛数据...');
-      let matches = wx.getStorageSync('matches') || [];
+      let matches = getLocalMatches().map(normalizeMatchRecord);
       
       console.log('原始比赛数据:', matches);
       
@@ -68,24 +75,26 @@ Page({
   // 查看比赛详情
   viewMatch: function(e) {
     const matchId = e.currentTarget.dataset.id;
+    const cloudMatchId = e.currentTarget.dataset.matchid || '';
     wx.navigateTo({
-      url: `/pages/match-detail/match-detail?id=${matchId}`
+      url: `/pages/match-detail/match-detail?id=${matchId}&matchId=${cloudMatchId}`
     });
   },
 
   // 删除比赛
   deleteMatch: function(e) {
     const matchId = e.currentTarget.dataset.id;
+    const cloudMatchId = e.currentTarget.dataset.matchid || '';
     
     wx.showModal({
       title: '确认删除',
       content: '确定要删除这场比赛吗？删除后无法恢复。',
       success: (res) => {
         if (res.confirm) {
-          const matches = this.data.matches.filter(match => match.id !== matchId);
+          const targetMatch = this.data.matches.find(match => match.id === matchId);
+          const matches = removeLocalMatch({ id: matchId, matchId: cloudMatchId });
           
           try {
-            wx.setStorageSync('matches', matches);
             this.setData({
               matches: matches,
               summary: this.buildSummary(matches)
@@ -95,6 +104,10 @@ Page({
               title: '比赛已删除',
               icon: 'success'
             });
+
+            if (cloudMatchId && targetMatch) {
+              this.tryDeleteCloudMatch(cloudMatchId, targetMatch.ownerOpenId || '');
+            }
           } catch (e) {
             wx.showToast({
               title: '删除失败，请重试',
@@ -104,6 +117,23 @@ Page({
         }
       }
     });
+  },
+
+  tryDeleteCloudMatch: async function(cloudMatchId, ownerOpenId) {
+    try {
+      const openIdRes = await callCloudFunction('getOpenId');
+      const currentOpenId = openIdRes.openId || '';
+      if (!ownerOpenId || !currentOpenId || ownerOpenId !== currentOpenId) {
+        return;
+      }
+      await callCloudFunction('deleteMatch', { matchId: cloudMatchId });
+    } catch (error) {
+      console.warn('云端删除失败:', error);
+      wx.showToast({
+        title: '本地已删，云端删除失败',
+        icon: 'none'
+      });
+    }
   },
 
   // 格式化比赛创建时间：2026年5月27日 14:30

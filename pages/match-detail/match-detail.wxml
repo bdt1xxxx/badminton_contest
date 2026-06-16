@@ -1,8 +1,13 @@
 <view class="container detail-page" wx:if="{{match}}">
   <view class="page-content">
     <view class="match-summary">
-      <text class="summary-name">{{match.name}}</text>
+      <view class="summary-header">
+        <text class="summary-name">{{match.name}}</text>
+        <view class="share-btn" wx:if="{{isEditable && match.matchId}}" bindtap="generateShareQRCode">分享</view>
+      </view>
       <text class="summary-meta">{{match.players.length}}/{{match.maxPlayers}}人 · {{match.type}} · {{matchSummary.total}}场 · 未完成{{matchSummary.incomplete}}</text>
+      <text class="summary-meta" wx:if="{{offlineMessage}}">{{offlineMessage}}</text>
+      <text class="summary-meta">{{isEditable ? '创建者模式（可编辑）' : '查看模式（只读）'}}</text>
     </view>
 
     <view class="tab-container">
@@ -47,10 +52,10 @@
             </view>
 
             <view class="score-row">
-              <input class="score-input" placeholder="分数" value="{{item2.team1.score}}" disabled="{{item2.completed}}" data-match-id="{{item2.id}}" data-team="team1" bindinput="onScoreInput" />
+              <input class="score-input" placeholder="分数" value="{{item2.team1.score}}" disabled="{{item2.completed || !isEditable}}" data-match-id="{{item2.id}}" data-team="team1" bindinput="onScoreInput" />
               <text class="score-separator">:</text>
-              <input class="score-input" placeholder="分数" value="{{item2.team2.score}}" disabled="{{item2.completed}}" data-match-id="{{item2.id}}" data-team="team2" bindinput="onScoreInput" />
-              <view class="complete-btn {{item2.completed ? 'modify' : ''}}" bindtap="toggleComplete" data-match-id="{{item2.id}}">
+              <input class="score-input" placeholder="分数" value="{{item2.team2.score}}" disabled="{{item2.completed || !isEditable}}" data-match-id="{{item2.id}}" data-team="team2" bindinput="onScoreInput" />
+              <view class="complete-btn {{item2.completed ? 'modify' : ''}}" wx:if="{{isEditable}}" bindtap="toggleComplete" data-match-id="{{item2.id}}">
                 {{item2.completed ? '修改' : '完成'}}
               </view>
             </view>
@@ -92,10 +97,10 @@
               </view>
 
               <view class="score-row">
-                <input class="score-input" placeholder="分数" value="{{item2.team1.score}}" disabled="{{item2.completed}}" data-match-id="{{item2.id}}" data-team="team1" bindinput="onScoreInput" />
+                <input class="score-input" placeholder="分数" value="{{item2.team1.score}}" disabled="{{item2.completed || !isEditable}}" data-match-id="{{item2.id}}" data-team="team1" bindinput="onScoreInput" />
                 <text class="score-separator">:</text>
-                <input class="score-input" placeholder="分数" value="{{item2.team2.score}}" disabled="{{item2.completed}}" data-match-id="{{item2.id}}" data-team="team2" bindinput="onScoreInput" />
-                <view class="complete-btn {{item2.completed ? 'modify' : ''}}" bindtap="toggleComplete" data-match-id="{{item2.id}}">
+                <input class="score-input" placeholder="分数" value="{{item2.team2.score}}" disabled="{{item2.completed || !isEditable}}" data-match-id="{{item2.id}}" data-team="team2" bindinput="onScoreInput" />
+                <view class="complete-btn {{item2.completed ? 'modify' : ''}}" wx:if="{{isEditable}}" bindtap="toggleComplete" data-match-id="{{item2.id}}">
                   {{item2.completed ? '修改' : '完成'}}
                 </view>
               </view>
@@ -124,10 +129,10 @@
           </view>
 
           <view class="score-row">
-            <input class="score-input" placeholder="分数" value="{{item.team1.score}}" disabled="{{item.completed}}" data-match-id="{{item.id}}" data-team="team1" bindinput="onScoreInput" />
+            <input class="score-input" placeholder="分数" value="{{item.team1.score}}" disabled="{{item.completed || !isEditable}}" data-match-id="{{item.id}}" data-team="team1" bindinput="onScoreInput" />
             <text class="score-separator">:</text>
-            <input class="score-input" placeholder="分数" value="{{item.team2.score}}" disabled="{{item.completed}}" data-match-id="{{item.id}}" data-team="team2" bindinput="onScoreInput" />
-            <view class="complete-btn {{item.completed ? 'modify' : ''}}" bindtap="toggleComplete" data-match-id="{{item.id}}">
+            <input class="score-input" placeholder="分数" value="{{item.team2.score}}" disabled="{{item.completed || !isEditable}}" data-match-id="{{item.id}}" data-team="team2" bindinput="onScoreInput" />
+            <view class="complete-btn {{item.completed ? 'modify' : ''}}" wx:if="{{isEditable}}" bindtap="toggleComplete" data-match-id="{{item.id}}">
               {{item.completed ? '修改' : '完成'}}
             </view>
           </view>

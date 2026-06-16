@@ -1,6 +1,20 @@
+const {
+  callCloudFunction,
+  findMatchInLocal,
+  getLocalMatches,
+  normalizeMatchRecord,
+  setLocalMatches,
+  upsertLocalMatch
+} = require('../../utils/cloud-match');
+
 Page({
   data: {
     match: null,
+    matchId: '',
+    localId: null,
+    currentOpenId: '',
+    isEditable: false,
+    offlineMessage: '',
     matches: [],
     roundGroups: [],
     completedRoundGroups: [],
@@ -17,9 +31,22 @@ Page({
     }
   },
 
-  onLoad: function(options) {
-    const matchId = parseInt(options.id);
-    this.loadMatchDetail(matchId);
+  onLoad: async function(options) {
+    const localId = options.id ? parseInt(options.id, 10) : null;
+    const matchIdFromScene = options.scene ? decodeURIComponent(options.scene) : '';
+    const matchId = options.matchId || matchIdFromScene || '';
+    await this.loadMatchDetail({ localId, matchId });
+  },
+
+  onShow: async function() {
+    const match = this.data.match;
+    if (!match) {
+      return;
+    }
+    await this.loadMatchDetail({
+      localId: this.data.localId,
+      matchId: this.data.matchId || match.matchId || ''
+    });
   },
 
   buildMatchSummary: function(matches) {
@@ -123,72 +150,90 @@ Page({
   },
 
   // 加载比赛详情
-  loadMatchDetail: function(matchId) {
+  loadMatchDetail: async function({ localId, matchId }) {
+    let currentOpenId = '';
+    let offlineMessage = '';
+
     try {
-      const matches = wx.getStorageSync('matches') || [];
-      const match = matches.find(m => m.id === matchId);
-      
-      if (match) {
-        console.log('加载的比赛数据:', match);
-        console.log('rounds字段值:', match.rounds);
-        console.log('selectedRounds字段值:', match.selectedRounds);
-        
-        // 检查数据完整性
-        if (match.rounds === undefined || match.rounds === null) {
-          console.error('比赛数据缺失rounds字段:', match);
+      const openIdRes = await callCloudFunction('getOpenId');
+      currentOpenId = openIdRes.openId || '';
+    } catch (error) {
+      console.warn('获取openId失败，将进入只读模式:', error);
+    }
+
+    let localMatch = findMatchInLocal({ id: localId, matchId });
+    let targetMatch = localMatch ? normalizeMatchRecord(localMatch) : null;
+
+    if (matchId || (targetMatch && targetMatch.matchId)) {
+      const cloudMatchId = matchId || targetMatch.matchId;
+      try {
+        const cloudRes = await callCloudFunction('getMatchById', { matchId: cloudMatchId });
+        targetMatch = normalizeMatchRecord(cloudRes.match);
+        if (!targetMatch.id) {
+          targetMatch.id = localId || Date.now();
+        }
+        upsertLocalMatch(targetMatch);
+      } catch (error) {
+        console.warn('拉取云端比赛失败，回退本地缓存:', error);
+        if (!targetMatch) {
           wx.showToast({
-            title: '比赛数据不完整：缺少比赛局数',
-            icon: 'none',
-            duration: 3000
+            title: '比赛不存在或已删除',
+            icon: 'none'
           });
+          wx.navigateBack();
           return;
         }
-        
-        // 为每个对阵添加completed状态，保持已保存的状态，并确保数据完整性
-        const matchesWithStatus = (match.matches || []).map(m => {
-          // 确保每个对阵都有必要的字段
-          const enhancedMatch = {
-            ...m,
-            completed: m.completed || false
-          };
-          return enhancedMatch;
-        });
-        
-        // 根据完成状态排序对阵
-        const displayCourtCount = this.getDisplayCourtCount(match);
-        const sortedMatches = displayCourtCount === 2
-          ? [...matchesWithStatus]
-          : this.sortMatchesByCompletion(matchesWithStatus);
-        const groupedRounds = this.buildRoundGroups(sortedMatches, displayCourtCount);
-        
-        // 初始化玩家统计数据
-        const playerStats = this.initializePlayerStats(match.players || []);
-        
-        this.setData({
-          match: match,
-          matches: sortedMatches,
-          playerCounts: match.playerCounts || {},
-          byeCounts: match.byeCounts || {},
-          displayCourtCount: displayCourtCount,
-          roundGroups: groupedRounds.roundGroups,
-          completedRoundGroups: groupedRounds.completedRoundGroups,
-          playerStats: playerStats,
-          matchSummary: this.buildMatchSummary(sortedMatches)
-        });
-      } else {
-        wx.showToast({
-          title: '比赛不存在',
-          icon: 'none'
-        });
-        wx.navigateBack();
+        offlineMessage = '当前离线，可能不是最新';
       }
-    } catch (e) {
-      console.error('加载比赛详情失败:', e);
+    }
+
+    if (!targetMatch) {
       wx.showToast({
-        title: '加载失败，请重试',
+        title: '比赛不存在',
         icon: 'none'
       });
+      wx.navigateBack();
+      return;
     }
+
+    if (targetMatch.rounds === undefined || targetMatch.rounds === null) {
+      wx.showToast({
+        title: '比赛数据不完整：缺少比赛局数',
+        icon: 'none',
+        duration: 3000
+      });
+      return;
+    }
+
+    const matchesWithStatus = (targetMatch.matches || []).map((item) => ({
+      ...item,
+      completed: !!item.completed
+    }));
+
+    const displayCourtCount = this.getDisplayCourtCount(targetMatch);
+    const sortedMatches = displayCourtCount === 2
+      ? [...matchesWithStatus]
+      : this.sortMatchesByCompletion(matchesWithStatus);
+    const groupedRounds = this.buildRoundGroups(sortedMatches, displayCourtCount);
+    const playerStats = this.initializePlayerStats(targetMatch.players || []);
+    const isEditable = !!currentOpenId && currentOpenId === targetMatch.ownerOpenId;
+
+    this.setData({
+      match: targetMatch,
+      matchId: targetMatch.matchId || '',
+      localId: targetMatch.id || localId,
+      currentOpenId,
+      isEditable,
+      offlineMessage,
+      matches: sortedMatches,
+      playerCounts: targetMatch.playerCounts || {},
+      byeCounts: targetMatch.byeCounts || {},
+      displayCourtCount,
+      roundGroups: groupedRounds.roundGroups,
+      completedRoundGroups: groupedRounds.completedRoundGroups,
+      playerStats,
+      matchSummary: this.buildMatchSummary(sortedMatches)
+    });
   },
 
   // 初始化玩家统计数据
@@ -218,6 +263,9 @@ Page({
 
   // 分数输入
   onScoreInput: function(e) {
+    if (!this.data.isEditable) {
+      return;
+    }
     const { matchId, team } = e.currentTarget.dataset;
     const value = e.detail.value;
     
@@ -242,7 +290,10 @@ Page({
   },
 
   // 切换完成/修改状态
-  toggleComplete: function(e) {
+  toggleComplete: async function(e) {
+    if (!this.data.isEditable) {
+      return;
+    }
     const matchId = e.currentTarget.dataset.matchId;
     console.log('点击完成按钮，比赛ID:', matchId);
     console.log('排序前的比赛数据:', this.data.matches);
@@ -274,8 +325,8 @@ Page({
       this.forceUpdateMatches();
     });
     
-    // 保存数据到本地存储
-    this.saveMatchData(sortedMatches);
+    // 保存数据到本地存储并同步云端
+    await this.saveMatchData(sortedMatches);
     
     // 显示提示
     const match = sortedMatches.find(m => m.id === matchId);
@@ -312,9 +363,9 @@ Page({
   },
 
   // 保存比赛数据到本地存储
-  saveMatchData: function(matches) {
+  saveMatchData: async function(matches) {
     try {
-      const allMatches = wx.getStorageSync('matches') || [];
+      const allMatches = getLocalMatches();
       const currentMatch = this.data.match;
       
       // 更新当前比赛的对阵数据
@@ -322,14 +373,41 @@ Page({
         ...currentMatch,
         matches: matches
       };
+      delete updatedMatch.isEditable;
       
       // 找到并更新存储中的比赛
       const updatedMatches = allMatches.map(m => 
-        m.id === currentMatch.id ? updatedMatch : m
+        (m.matchId && currentMatch.matchId && m.matchId === currentMatch.matchId) || m.id === currentMatch.id
+          ? updatedMatch
+          : m
       );
       
-      wx.setStorageSync('matches', updatedMatches);
+      setLocalMatches(updatedMatches);
+      this.setData({
+        match: updatedMatch
+      });
       console.log('比赛数据已保存到本地存储');
+
+      if (this.data.isEditable && updatedMatch.matchId) {
+        try {
+          const cloudRes = await callCloudFunction('updateMatch', { match: updatedMatch });
+          const nextMatch = {
+            ...updatedMatch,
+            updatedAt: cloudRes.updatedAt || updatedMatch.updatedAt,
+            version: typeof cloudRes.version === 'number' ? cloudRes.version : updatedMatch.version
+          };
+          upsertLocalMatch(nextMatch);
+          this.setData({
+            match: nextMatch
+          });
+        } catch (syncError) {
+          console.warn('云端同步失败:', syncError);
+          wx.showToast({
+            title: '本地已更新，云端同步失败',
+            icon: 'none'
+          });
+        }
+      }
     } catch (e) {
       console.error('保存比赛数据失败:', e);
       wx.showToast({
@@ -451,5 +529,30 @@ Page({
       '已结束': '#999999'
     };
     return colorMap[status] || '#999999';
+  },
+
+  generateShareQRCode: function() {
+    const match = this.data.match;
+    if (!match || !match.matchId) {
+      wx.showToast({
+        title: '当前比赛不支持分享',
+        icon: 'none'
+      });
+      return;
+    }
+
+    const encodedName = encodeURIComponent(match.name || '');
+    wx.navigateTo({
+      url: `/pages/match-share-qrcode/match-share-qrcode?matchId=${match.matchId}&matchName=${encodedName}`
+    });
+  },
+
+  onShareAppMessage: function() {
+    const match = this.data.match || {};
+    const query = match.matchId ? `?matchId=${match.matchId}` : `?id=${match.id}`;
+    return {
+      title: `${match.name || '羽毛球比赛'} 对局进展`,
+      path: `/pages/match-detail/match-detail${query}`
+    };
   }
 }); 

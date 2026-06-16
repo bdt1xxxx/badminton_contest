@@ -32,6 +32,7 @@
     "useCompilerPlugins": false
   },
   "condition": {},
+  "cloudfunctionRoot": "cloudfunctions/",
   "editorSetting": {
     "tabIndent": "auto",
     "tabSize": 2

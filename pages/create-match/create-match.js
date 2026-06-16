@@ -1,3 +1,5 @@
+const { callCloudFunction, getLocalMatches, setLocalMatches } = require('../../utils/cloud-match');
+
 Page({
   data: {
     matchName: '',
@@ -186,7 +188,7 @@ Page({
   },
 
   // 创建比赛
-  createMatch: function () {
+  createMatch: async function () {
     try {
       console.log('开始创建比赛...');
       console.log('比赛数据:', {
@@ -204,9 +206,10 @@ Page({
         : this.generateDoublesMatches();
       console.log('生成的对阵:', generatedMatches);
 
+      const localId = Date.now();
       // 创建比赛对象
       const match = {
-        id: Date.now(),
+        id: localId,
         name: this.data.matchName,
         date: new Date().toISOString().slice(0, 10),
         time: new Date().toISOString().slice(11, 16),
@@ -222,19 +225,29 @@ Page({
         // 对阵信息
         matches: generatedMatches.matches,
         playerCounts: generatedMatches.playerCounts,
-        byeCounts: generatedMatches.byeCounts
+        byeCounts: generatedMatches.byeCounts,
+        matchId: '',
+        ownerOpenId: '',
+        updatedAt: null,
+        version: null
       };
 
       console.log('创建的比赛对象:', match);
 
+      const cloudResult = await callCloudFunction('createMatch', { match });
+      match.matchId = cloudResult.matchId;
+      match.ownerOpenId = cloudResult.ownerOpenId;
+      match.updatedAt = cloudResult.updatedAt;
+      match.version = cloudResult.version;
+
       // 保存到本地存储
-      let storedMatches = wx.getStorageSync('matches') || [];
+      let storedMatches = getLocalMatches();
       console.log('当前存储的比赛列表:', storedMatches);
 
       storedMatches.unshift(match);
       console.log('添加新比赛后的列表:', storedMatches);
 
-      wx.setStorageSync('matches', storedMatches);
+      setLocalMatches(storedMatches);
 
       // 验证保存是否成功
       const savedMatches = wx.getStorageSync('matches');
@@ -257,7 +270,7 @@ Page({
       });
     } catch (error) {
       console.error('创建比赛失败:', error);
-      this.showTips(error.message || '创建比赛失败，请重试');
+      this.showTips('创建失败，云端保存异常');
     }
   },
 

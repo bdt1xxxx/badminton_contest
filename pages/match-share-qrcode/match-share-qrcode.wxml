@@ -1,0 +1,48 @@
+<view class="container qrcode-page">
+  <view class="page-content">
+    <view class="header-card">
+      <text class="header-title">分享比赛二维码</text>
+      <text class="header-subtitle" wx:if="{{matchName}}">{{matchName}}</text>
+      <text class="header-subtitle">ID: {{matchId}}</text>
+    </view>
+
+    <view class="qrcode-card" wx:if="{{loading}}">
+      <text class="state-text">二维码生成中...</text>
+    </view>
+
+    <view class="qrcode-card" wx:elif="{{errorMessage}}">
+      <text class="state-text error">{{errorMessage}}</text>
+      <view class="action-row">
+        <view class="action-btn" bindtap="onRetryTap">重试</view>
+        <view class="action-btn secondary" bindtap="onBackTap">返回</view>
+      </view>
+    </view>
+
+    <view class="qrcode-card" wx:elif="{{fallbackMode}}">
+      <text class="state-text">{{fallbackMessage}}</text>
+      <text class="tip-text">请把比赛ID或路径发给对方，对方可在小程序内打开并同步比赛</text>
+      <view class="manual-share-box">
+        <text class="manual-label">比赛ID</text>
+        <text class="manual-value">{{matchId}}</text>
+        <text class="manual-label">分享路径</text>
+        <text class="manual-value">{{sharePath}}</text>
+      </view>
+      <view class="action-row">
+        <view class="action-btn" bindtap="onCopyMatchIdTap">复制比赛ID</view>
+        <view class="action-btn" bindtap="onCopyPathTap">复制路径</view>
+      </view>
+      <view class="action-row">
+        <view class="action-btn secondary" bindtap="onRetryTap">重试生成二维码</view>
+        <view class="action-btn secondary" bindtap="onBackTap">返回比赛详情</view>
+      </view>
+    </view>
+
+    <view class="qrcode-card" wx:else>
+      <image class="qrcode-image" src="{{qrImageSrc}}" mode="aspectFit" />
+      <text class="tip-text">微信扫码可直接查看本场比赛最新进展</text>
+      <view class="action-row">
+        <view class="action-btn secondary" bindtap="onBackTap">返回比赛详情</view>
+      </view>
+    </view>
+  </view>
+</view>

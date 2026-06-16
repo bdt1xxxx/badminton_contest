@@ -34,8 +34,8 @@
         </view>
 
         <view class="match-actions">
-          <view class="primary-btn" bindtap="viewMatch" data-id="{{item.id}}">查看详情</view>
-          <view class="danger-btn" bindtap="deleteMatch" data-id="{{item.id}}">删除</view>
+          <view class="primary-btn" bindtap="viewMatch" data-id="{{item.id}}" data-matchid="{{item.matchId}}">查看详情</view>
+          <view class="danger-btn" bindtap="deleteMatch" data-id="{{item.id}}" data-matchid="{{item.matchId}}">删除</view>
         </view>
       </view>
     </block>
