@@ -1,254 +1,171 @@
-# Project Context
+# 项目上下文（PROJECT CONTEXT）
 
-## Session Bootstrap
+## 1. 项目定位与当前形态
 
-This repository is a native WeChat Mini Program for managing badminton contests. The main value is creating a doubles match, generating balanced doubles pairings from player skill scores, storing matches locally, entering scores, and viewing player statistics.
+这是一个微信原生小程序，用于管理羽毛球比赛（当前以双打为核心）。  
+用户可以创建比赛、自动生成双打对阵、录入比分、查看统计，并通过云函数实现分享与跨端查看。
 
-For a new coding session, read this file first, then inspect the specific page or function you plan to touch. Non-trivial changes should follow the repository instructions from `AGENTS.md`: brainstorm/design first, wait for approval, write a plan, then implement surgically.
+当前项目是「本地存储优先 + 云端协同增强」架构：
+- 本地主存储键：`matches`
+- 云端用于共享与协同：`createMatch/getMatchById/updateMatch/deleteMatch/getOpenId/getMatchQrCode`
+- 兼容历史本地数据（可能没有 `matchId/ownerOpenId/version/updatedAt`）
 
-## What This Project Is
+---
 
-- Product: badminton contest management Mini Program.
-- Runtime: WeChat Mini Program, configured by `app.json` and `project.config.json`.
-- Data persistence: local device storage via `wx.getStorageSync`, `wx.setStorageSync`, and `wx.removeStorageSync`.
-- Primary storage key: `matches`.
-- Current branch when this context was written: `master...origin/master`; `git status` may print `fsmonitor_ipc__send_query` before normal branch output.
+## 2. 代码结构与职责映射
 
-The app currently focuses on doubles. The create page exposes `单打` and `双打`, but `generateSinglesMatches` is an empty implementation.
+- `/pages/create-match/`
+  - 比赛创建入口、双打对阵生成核心算法（当前最复杂模块）
+  - 支持场地数（1/2）、等级差、局数、可选打乱选手顺序
+- `/pages/match-list/`
+  - 读取本地比赛列表、按时间排序、跳转详情、删除（含云端删除尝试）
+- `/pages/match-detail/`
+  - 详情展示、比分录入、完成状态切换、统计计算、分享二维码入口
+  - 双场地模式下按轮次分组展示，避免完成状态排序打散轮次
+- `/pages/profile/`
+  - 用户信息、导入导出、清空数据、数据摘要
+- `/utils/cloud-match.js`
+  - 云函数调用封装 + 本地数据读写/归一化/增删改
+- `/cloudfunctions/*`
+  - `createMatch`: 生成云端 `matchId`，写入 `ownerOpenId/version/updatedAt`
+  - `updateMatch`: 所有者校验 + 版本递增
+  - 其他函数用于查询、删除、二维码、OpenId
 
-## Repository Map
+---
 
-- `app.json`: Mini Program pages, tab bar, global window settings, and component framework settings.
-- `app.js`, `app.wxss`: app shell files with little business logic.
-- `pages/index/`: startup page that redirects to `pages/create-match/create-match` via `wx.switchTab`.
-- `pages/create-match/`: main creation UI and the active doubles match-generation algorithm. This is the most important area for scheduling changes.
-- `pages/match-list/`: loads `matches` from local storage, sorts by `createTime` or `id` descending, navigates to detail, and deletes matches.
-- `pages/match-detail/`: displays match info and generated pairings, stores scores/completed state, and calculates ranking statistics.
-- `pages/profile/`: user profile, data import/export, and data clearing.
-- `pages/logs/`: standard logs page scaffold.
-- `test/test-doubles-match.js`: Node.js smoke test with a copied version of the doubles algorithm stripped of `wx` dependencies.
-- `utils/badminton-planning.js`: currently only an empty `generateMatches` stub; it is not the active runtime path.
-- `utils/badminton_planning.py` and `utils/dp.py`: exploratory Python algorithm files, not used by the Mini Program runtime.
-- `chore/`: experiment inputs, benchmark scripts, logs, and sample stored data.
-- `docs/superpowers/`: prior design and implementation-plan notes, especially around MRV backtracking and `courtCount`.
+## 3. 核心业务流程（端到端）
 
-## Runtime And Tooling
+### 3.1 创建比赛
+1. 在创建页输入比赛信息与选手（姓名 + 分值）。
+2. 选择局数、等级差、场地数后执行创建。
+3. 双打时调用 `generateDoublesMatches` 生成对阵。
+4. 先调用云函数 `createMatch` 获取云端标识，再写入本地 `matches` 并跳转列表页。
 
-Open the project in WeChat Developer Tools. There is no `package.json` or npm-based app runner in the current repository.
+### 3.2 查看与计分
+1. 详情页按 `id/matchId` 加载本地与云端数据（云端失败则回退本地）。
+2. 仅创建者（`currentOpenId === ownerOpenId`）可编辑。
+3. 录入比分、切换完成状态后，本地保存并尝试 `updateMatch` 云同步。
 
-Useful local commands:
+### 3.3 导入导出
+- 导入：粘贴 JSON 数组，做浅校验后追加写入本地。
+- 导出：将本地 `matches` 转为 JSON 字符串写入剪贴板。
+- 清空：删除本地 `matches`。
 
-```bash
-node test/test-doubles-match.js
-rg --files
-git status --short --branch
-```
+---
 
-`test/test-doubles-match.js` is the main quick verification command for doubles scheduling. It is not a full test suite; it is a smoke test with duplicated algorithm code.
+## 4. 双打排阵算法逻辑（当前实现）
 
-## Main User Flows
+主入口在 `pages/create-match/create-match.js`（页内实现，不是 utils 抽象）：
 
-Create match:
+1. `generatePlayerPairs` 生成所有 2 人组合  
+2. `generateValidMatches` 组合成 4 人对战并按 `levelGap` 过滤  
+3. `selectMatchesByStrategy` 策略链：
+   - `selectBalancedMatchesBackTraceMRV`（优先）
+   - `selectBalancedMatches`（兜底）
+4. `formatMatches` 形成前端显示结构  
+5. `optimizeMatchSequence` + `calculateTotalConflicts` 按场地批次降低同轮冲突
 
-1. User opens the create tab.
-2. User enters match name, type, max players, court count, player names, and player skill scores.
-3. User taps create, then chooses `levelGap` and `rounds`.
-4. `createMatch` calls `generateDoublesMatches` for doubles.
-5. Generated match data is prepended into `wx` local storage key `matches`.
-6. App switches to the match-list tab.
+关键约束：
+- 双打至少 4 人
+- 局数必须 > 0，等级差不能 < 0
+- MRV 仅在 `(局数*4) % 选手数 == 0` 时可解（每人出场次数可整除）
+- MRV 有时间与步数上限（防止长时间阻塞）
 
-View and score match:
+---
 
-1. Match list loads local `matches`, sorts newest first, and opens detail via `pages/match-detail/match-detail?id=<id>`.
-2. Detail page loads the match by numeric `id`.
-3. Users enter team scores and toggle each generated match between complete and modify states.
-4. Completed matches move below incomplete matches.
-5. Switching to the statistics tab recalculates wins and score difference.
+## 5. App 的核心特征（优势）
 
-Import/export:
+1. **双打排阵能力完整**：从组合生成、平衡选择到冲突优化，能力闭环完整。  
+2. **本地可用性高**：即使云端不可用，核心读写仍可运行。  
+3. **协同能力已具备基础**：`matchId + ownerOpenId + version` 让分享和编辑权限可控。  
+4. **数据兼容意识较强**：详情页与工具函数里有旧数据兼容和归一化处理。  
+5. **业务闭环明确**：创建 -> 列表 -> 详情计分 -> 统计 -> 导入导出，路径清晰。
 
-1. Profile page can import pasted JSON arrays.
-2. Valid imported matches are appended to existing local `matches`.
-3. Export copies raw JSON to the clipboard.
-4. Clear data removes the `matches` key.
+---
 
-## Data Model
+## 6. 主要痛点与风险（按优先级）
 
-Top-level match objects are stored in local storage under `matches` as an array. The create path currently writes this shape:
+## 高优先级（建议优先处理）
 
-```js
-{
-  id: Date.now(),
-  name: string,
-  date: "YYYY-MM-DD",
-  time: "HH:mm",
-  location: "待定",
-  type: "单打" | "双打",
-  maxPlayers: number,
-  players: [{ name: string, score: number }],
-  levelGap: number,
-  rounds: number,
-  status: "报名中",
-  createTime: string,
-  matches: GeneratedMatch[],
-  playerCounts: { [playerName]: number },
-  byeCounts: {}
-}
-```
+1. **单打功能对用户是“可选但不可用”状态**  
+   - 现状：`matchType` 有“单打”，但 `generateSinglesMatches` 为空。  
+   - 风险：用户选择后创建可能失败或得到无效结果，属于显性功能断层。
 
-Generated doubles matches use this shape:
+2. **核心算法高度耦合在页面文件中**  
+   - 现状：`create-match.js` 体量大、职责混合（UI + 排阵 + 优化 + DP 试验代码）。  
+   - 风险：变更回归成本高，后续迭代容易引入隐性回归。
 
-```js
-{
-  id: number,
-  team1: {
-    player1: { name: string, level: number },
-    player2: { name: string, level: number },
-    levelSum: number,
-    score?: string
-  },
-  team2: {
-    player1: { name: string, level: number },
-    player2: { name: string, level: number },
-    levelSum: number,
-    score?: string
-  },
-  levelDiff: number,
-  completed?: boolean,
-  hasConflict?: boolean,
-  conflictWith?: number,
-  conflictScore?: number
-}
-```
+3. **存在同步忙等待 `sleep(ms)`**  
+   - 现状：创建流程中使用 busy wait。  
+   - 风险：可能阻塞主线程，影响小程序交互流畅性与稳定性。
 
-Cloud sharing fields (new):
+## 中优先级
 
-```js
-{
-  matchId: string,        // 云端唯一ID，创建时由云函数生成
-  ownerOpenId: string,    // 创建者 openId
-  updatedAt: number,      // 服务器时间戳
-  version: number | null, // 可选版本号，更新时递增
-  isEditable: boolean     // 仅本地运行时字段，不入云
-}
-```
+4. **测试与运行时算法存在复制关系**  
+   - 现状：`test/test-doubles-match.js` 复制了算法而非直接复用运行时代码。  
+   - 风险：测试通过不等于线上逻辑完全一致，长期有偏移风险。
 
-Compatibility:
+5. **导入校验偏浅**  
+   - 现状：只校验顶层字段和基础合法性。  
+   - 风险：异常结构可进入本地库，后续在详情页/统计页触发边界问题。
 
-- 历史数据可能没有 `matchId/ownerOpenId/updatedAt/version`，此类记录默认本地模式。
-- 本地删除为优先策略；创建者云端删除失败时允许暂时残留，后续再清理。
+6. **以选手姓名作为主身份键**  
+   - 现状：计数、统计、排阵对象索引依赖姓名字符串。  
+   - 风险：重名会导致计数冲突与统计污染。
 
-Important compatibility notes:
+## 低优先级
 
-- `match-detail` expects `match.rounds` to exist and shows an error if it is missing.
-- `completed` is added lazily when details are loaded.
-- Team `score` fields are created by score inputs in `match-detail`, not during scheduling.
-- Imported data validation is intentionally shallow: it checks required top-level fields and basic player/status validity, but not the full generated match schema.
+7. **历史探索代码与当前主链路共存**  
+   - 现状：DP 相关函数、旧逻辑片段仍在主文件。  
+   - 风险：理解门槛高，容易误用或误判真实执行路径。
 
-## Doubles Match Generation
+---
 
-The active doubles algorithm lives inside `pages/create-match/create-match.js`. It is page-local, not imported from `utils`.
+## 7. 近期演进状态（基于最近提交）
 
-Main path:
+最近提交显示项目在以下方向持续演进：
+- 双场地（2 court）优化与冲突处理修复
+- 云端分享能力增强（二维码、编辑权限）
+- 数据过期清理机制引入
 
-1. `generateDoublesMatches`
-2. Build `playersObj` as `{ [name]: score }`.
-3. Optionally shuffle `playerList` if `shouldShufflePlayers` is enabled.
-4. Retry up to `MAX_RETRIES = 5` when conflict count remains nonzero.
-5. `generatePlayerPairs` creates all 2-player combinations.
-6. `generateValidMatches` pairs two disjoint pairs into one doubles match when `abs(level1 - level2) <= levelGap`.
-7. `selectMatchesByStrategy` tries:
-   - `selectBalancedMatchesBackTraceMRV`
-   - `selectBalancedMatches`
-8. `formatMatches` converts raw pairings into UI data.
-9. `optimizeMatchSequence` tries to reduce same-round player conflicts.
-10. `calculateTotalConflicts` evaluates conflicts by grouping matches into batches of `courtCount`.
+这说明当前产品阶段已从“纯本地排阵工具”转向“可分享、可协同的比赛管理工具”。
 
-Core constraints:
+---
 
-- Doubles requires at least 4 players.
-- `numMatches` must be positive.
-- `levelGap` cannot be negative.
-- Exact equal participation requires `(numMatches * 4) % playerCount === 0`; MRV returns `null` if this is not true.
-- Round options are currently `n`, `2n`, and `3n`, where `n = players.length`.
-- `courtCount` is exposed as 1 or 2 courts in the UI. Conflict detection is generic batch logic over `courtCount`, but the UI only offers those two values.
+## 8. 维护与改动建议
 
-MRV backtracking notes:
+1. **先修功能一致性**
+   - 要么补全单打生成，要么在 UI 层暂时隐藏单打入口，避免“可选不可用”。
 
-- `selectBalancedMatchesBackTraceMRV` maps players to numeric indexes and uses in-place arrays for counts.
-- It tracks `counts`, `supply`, `used`, `excluded`, and selected match indexes.
-- It has both a `TIME_LIMIT = 10000` ms and `STEP_LIMIT = 200000`.
-- It returns formatted matches on success and `null` on timeout, step limit, or unsatisfied constraints.
-- If MRV fails, the random brute-force fallback `selectBalancedMatches` can still throw after 10,000 attempts.
+2. **逐步解耦创建页**
+   - 先把排阵核心（纯函数）抽到独立模块，再保留页面做编排与交互。
 
-Conflict optimization notes:
+3. **去除 busy wait**
+   - 用异步提示替代同步 `sleep`，避免阻塞主线程。
 
-- Conflicts mean repeated players inside one simultaneous court batch, not merely adjacent list items.
-- `calculateTotalConflicts`, `reorderMatchesByConflict`, and `showConflictSummary` all use `courtCount` batches.
-- Conflict-heavy batches are marked with `hasConflict`, `conflictWith`, and `conflictScore`, then moved later.
-- `attemptOptimization` is greedy and starts from the first match, so generated order can be input-order sensitive.
+4. **测试改为“共享逻辑”**
+   - 让测试直接引用同一份算法模块，减少复制导致的漂移。
 
-## Scoring And Statistics
+5. **增强导入与标识体系**
+   - 导入做更严格 schema 校验；选手引入稳定 ID（显示名可重复）。
 
-`pages/match-detail/match-detail.js` owns score entry and statistics.
+---
 
-- `onScoreInput` mutates `team1.score` or `team2.score` in page state.
-- `toggleComplete` toggles `completed`, sorts incomplete matches before completed matches, and persists updated `matches` back into the stored match object.
-- `calculatePlayerStats` only counts completed matches with both team scores.
-- Wins are credited to players on the higher-scoring team.
-- Score difference is added positively for winners and negatively for losers.
-- Ties do not affect wins or score difference.
-- Ranking sort is by wins descending, then score difference descending.
+## 9. 会话启动建议（给后续开发）
 
-## Import, Export, And Local Data
+建议每次进入仓库先看本文件，再按任务读取对应模块：
 
-`pages/profile/profile.js` manages user profile and local data utilities.
+- 排阵相关：`pages/create-match/create-match.js`、`test/test-doubles-match.js`
+- 计分与统计：`pages/match-detail/match-detail.js`
+- 云同步：`utils/cloud-match.js` + `cloudfunctions/*`
+- 数据工具：`pages/profile/profile.js`
 
-- Import expects a JSON array.
-- Valid imported matches receive `importTime` and are appended after existing matches.
-- Export copies `JSON.stringify(matches, null, 2)` to the clipboard.
-- Clear removes `matches` from local storage.
-- User profile uses older `wx.getUserInfo` style in places; treat profile API changes carefully if modernizing.
-
-## Verification
-
-Before claiming scheduling work is complete, run:
+快速自检命令：
 
 ```bash
 node test/test-doubles-match.js
 ```
 
-Expected signs of success:
-
-- Process exits with code 0.
-- Output reports `出场次数是否均等: ✅ 是`.
-- Output reports `同轮次冲突数: ✅ 0` or an explicit conflict count depending on the sample.
-
-If you change scheduling logic in `pages/create-match/create-match.js`, also update `test/test-doubles-match.js` if the copied algorithm should remain representative. This duplication is a known maintenance hazard.
-
-For Mini Program UI changes, verify in WeChat Developer Tools. There is no local web dev server for this project.
-
-## Known Risks And Sharp Edges
-
-- `generateSinglesMatches` is empty, even though the UI allows choosing `单打`.
-- The active scheduling implementation is embedded in `pages/create-match/create-match.js`, making the file large and easy to accidentally break.
-- `test/test-doubles-match.js` duplicates page logic instead of importing it.
-- `utils/badminton-planning.js` is not used and should not be mistaken for the real algorithm.
-- Dynamic programming helper functions at the end of `create-match.js` appear not to be connected to `selectMatchesByStrategy`.
-- `sleep(ms)` is a synchronous busy wait and can block the Mini Program main thread.
-- `calculateSearchSpace` still includes a state-space multiplier, but the active MRV strategy no longer depends on that older backtracking gate.
-- Round options are based on player count only; not every arbitrary future option will satisfy equal-participation divisibility.
-- Player identity is the player name string. Duplicate names can collide in `playersObj`, `playerCounts`, and statistics.
-- Imported data can bypass many invariants because validation is shallow.
-- Match deletion and clear-data operations are destructive local-storage changes.
-
-## Working Guidelines For Future Sessions
-
-- Preserve user changes. Do not reset or revert unrelated files.
-- Keep changes surgical; this codebase is small but the create page is dense.
-- For non-trivial edits, follow the repository workflow: design approval first, then plan, then implementation.
-- For algorithm changes, start by reading `pages/create-match/create-match.js`, `test/test-doubles-match.js`, and the relevant docs under `docs/superpowers`.
-- Prefer extracting reusable algorithm logic only if the user approves that refactor; it is a real behavioral surface because the current runtime code is page-local.
-- When touching local-storage schema, account for older imported or already-stored matches.
-- When touching score/statistics behavior, check both `match-detail.js` and `match-detail.wxml`.
-- When touching create-form options, check both `create-match.js` and `create-match.wxml`.
+说明：
+- 该命令是当前主要的算法烟测，不是完整测试体系。
+- UI 改动需在微信开发者工具中手工验证。
